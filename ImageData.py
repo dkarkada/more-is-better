@@ -13,12 +13,13 @@ class ImageData():
         'cifar100': torchvision.datasets.CIFAR100,
     }
 
-    def __init__(self, dataset_name, classes=None):
+    def __init__(self, dataset_name, classes=None, binarize=False):
         """
         dataset_name (str): one of  'mnist', 'fmnist', 'cifar10', 'cifar100'
         classes (iterable): a list of groupings of old class labels that each constitute a new class.
             e.g. [[0,1], [8]] on MNIST would be a binary classification problem where the first class
             consists of samples of 0's and 1's and the second class has samples of 8's
+        binarize (boolean): whether to use +1/-1 label encoding. Ignored if num_classes!=2
         """
 
         assert dataset_name in self.dataset_dict
@@ -48,11 +49,11 @@ class ImageData():
             x = (x - x.mean())/x.std()
 
             # onehot encoding, unless binary classification (+1,-1)
-            if n_classes != 2:
-                y = F.one_hot(torch.Tensor(y).long()).numpy()
-            else:
+            if n_classes == 2 and binarize:
                 y = 2*y - 1
                 y = y[:, None] #reshape
+            else:
+                y = F.one_hot(torch.Tensor(y).long()).numpy()
 
             # add a dummy channel dimension to MNIST and FMNIST
             if self.name in ['mnist', 'fmnist']:
@@ -67,35 +68,31 @@ class ImageData():
         self.train_X, self.train_y = get_xy(raw_train)
         self.test_X, self.test_y = get_xy(raw_test)
 
-    def get_dataset(self, n_train, n_test=None, rng=None):
+    def get_dataset(self, n, rng=None, get="train"):
         """Generate an image dataset.
 
-        n_train (int): the trainset size, must be at least 2.
-        n_test (int): the testset size. Testset may overlap trainset. Default: full image test set
-        rng (numpy RNG): numpy RNG state for random sampling.
+        n (int): the dataset size
+        rng (numpy RNG): numpy RNG state for random sampling. Default: None
+        get (str): either "train" or "test." Default: "train"
 
-        Returns: train_X, train_y, test_X, test_y
+        Returns: tuple (X, y) such that X.shape = (n, d_in), y.shape = (n, d_out)
         """
-
-        train_X, train_y = self.train_X, self.train_y
-        test_X, test_y = self.test_X, self.test_y
-
-        # get training and test subset
-        if rng is None:
-            train_X, train_y = train_X[:n_train], train_y[:n_train]
-            if n_test is not None:
-                test_X, test_y = test_X[:n_test], test_y[:n_test]
+        
+        assert int(n) == n
+        n = int(n)
+        assert n > 0
+        assert get in ["train", "test"]
+        if get == "train":
+            full_X, full_y = self.train_X, self.train_y
         else:
-            train_idxs = rng.choice(len(train_X), size=int(n_train), replace=False)
-            train_X, train_y = train_X[train_idxs], train_y[train_idxs]
-            if n_test is not None:
-                test_idxs = rng.choice(len(test_X), size=int(n_test), replace=False)
-                test_X, test_y = test_X[test_idxs], test_y[test_idxs]
-        assert len(train_X) == n_train
-        if n_test:
-            assert len(test_X) == n_test
+            full_X, full_y = self.test_X, self.test_y
+        
+        # get subset
+        idxs = slice(n) if rng is None else rng.choice(len(full_X), size=n, replace=False)
+        X, y = full_X[idxs], full_y[idxs]
+        assert len(X) == n
 
         # flatten
-        train_X, test_X = train_X.reshape((len(train_X), -1)), test_X.reshape((len(test_X), -1))
+        X = X.reshape((len(X), -1))
 
-        return train_X, train_y, test_X, test_y
+        return X, y

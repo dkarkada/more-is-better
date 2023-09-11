@@ -62,8 +62,8 @@ def compute_FCNTK(X, nHL=2):
     layers = [stax.Dense(width, W_std=np.sqrt(2), b_std=0.1), stax.Relu()] * nHL
     layers += [stax.Dense(width, W_std=1, b_std=0)]
     _, _, kernel_fn = stax.serial(*layers)
-    kernel_fn = jit(kernel_fn, static_argnames='get')
-    kernel_fn = nt.batch(kernel_fn, batch_size=10)
+    # kernel_fn = jit(kernel_fn, static_argnames='get')
+    kernel_fn = nt.batch(kernel_fn, batch_size=10, store_on_device=False)
     K = kernel_fn(X, get='ntk').block_until_ready()
     return np.array(K)
 
@@ -75,8 +75,8 @@ def compute_NNGPK(X, nHL=1, nonlin="relu"):
     layers = [stax.Dense(width, W_std=np.sqrt(2), b_std=0), activ] * nHL
     layers += [stax.Dense(width, W_std=1, b_std=0)]
     _, _, kernel_fn = stax.serial(*layers)
-    kernel_fn = jit(kernel_fn, static_argnames='get')
-    kernel_fn = nt.batch(kernel_fn, batch_size=10)
+    # kernel_fn = jit(kernel_fn, static_argnames='get')
+    kernel_fn = nt.batch(kernel_fn, batch_size=10, store_on_device=False)
     K = kernel_fn(X, get='nngp').block_until_ready()
     return np.array(K)
 
@@ -100,8 +100,8 @@ def compute_MyrtleNTK(X, depth):
     layers += [stax.Flatten(), stax.Dense(10, W_std, b_std)]
 
     _, _, kernel_fn =  stax.serial(*layers)
-    kernel_fn = jit(kernel_fn, static_argnames='get')
-    kernel_fn = nt.batch(kernel_fn, batch_size=10)
+    # kernel_fn = jit(kernel_fn, static_argnames='get')
+    kernel_fn = nt.batch(kernel_fn, batch_size=10, store_on_device=False)
     K = kernel_fn(X, get='ntk').block_until_ready()
     return np.array(K)
 
