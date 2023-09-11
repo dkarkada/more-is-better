@@ -105,47 +105,47 @@ def compute_MyrtleNTK(X, depth):
     K = kernel_fn(X, get='ntk').block_until_ready()
     return np.array(K)
 
-# myrtle cntk loader wants these
-from tensorflow.io import gfile
-import itertools
-import concurrent.futures
+# # myrtle cntk loader wants these
+# from tensorflow.io import gfile
+# import itertools
+# import concurrent.futures
 
-## MYRTLE CNTK FETCH AUTHENTICATION
-from google.colab import auth
-try:
-    auth.authenticate_user()
-except:
-    print('Colab authentication failed!!')
+# ## MYRTLE CNTK FETCH AUTHENTICATION
+# from google.colab import auth
+# try:
+#     auth.authenticate_user()
+# except:
+#     print('Colab authentication failed!!')
     
-def fetch_Myrtle_NTK(n):
-    filedir = 'gs://neural-tangents-kernels/infinite-uncertainty/kernels/myrtle-10/clean'
-    assert gfile.exists(filedir), f"File path {filedir} doesn't exist"
-    filepath = os.path.join(filedir, 'ntk')
+# def fetch_Myrtle_NTK(n):
+#     filedir = 'gs://neural-tangents-kernels/infinite-uncertainty/kernels/myrtle-10/clean'
+#     assert gfile.exists(filedir), f"File path {filedir} doesn't exist"
+#     filepath = os.path.join(filedir, 'ntk')
 
-    assert n % 5000 == 0
-    max_idx = int(np.ceil(n / 5000))
-    all_idxs = list(
-        filter(
-            lambda x: x[0] <= x[1],
-            itertools.product(range(max_idx), range(max_idx))))
-    K = np.zeros(shape=(n, n), dtype=np.float32)
+#     assert n % 5000 == 0
+#     max_idx = int(np.ceil(n / 5000))
+#     all_idxs = list(
+#         filter(
+#             lambda x: x[0] <= x[1],
+#             itertools.product(range(max_idx), range(max_idx))))
+#     K = np.zeros(shape=(n, n), dtype=np.float32)
 
-    def _update_kernel_from_indices(index):
-        row, col = index
-        # Loading based on 60k x 60k matrix
-        with gfile.GFile(f'{filepath}-{row}-{col}', 'rb') as f:
-            val = np.load(f).astype(np.float32)
+#     def _update_kernel_from_indices(index):
+#         row, col = index
+#         # Loading based on 60k x 60k matrix
+#         with gfile.GFile(f'{filepath}-{row}-{col}', 'rb') as f:
+#             val = np.load(f).astype(np.float32)
 
-        K[row*5000:(row+1)*5000, col*5000:(col+1)*5000] = val
-        if col > row:
-            K[col*5000:(col+1)*5000, row*5000:(row+1)*5000] = val.T
+#         K[row*5000:(row+1)*5000, col*5000:(col+1)*5000] = val
+#         if col > row:
+#             K[col*5000:(col+1)*5000, row*5000:(row+1)*5000] = val.T
 
-    with concurrent.futures.ThreadPoolExecutor(max_workers=200) as executor:
-        executor.map(_update_kernel_from_indices, all_idxs)
+#     with concurrent.futures.ThreadPoolExecutor(max_workers=200) as executor:
+#         executor.map(_update_kernel_from_indices, all_idxs)
 
-    # load labels
-    with gfile.GFile(os.path.join(filedir, 'labels'), 'rb') as f:
-        labels = np.load(f)
-    # change encoding from zero-mean [-0.1, 0.9] to one-hot [0, 1]
-    y = labels[:max_idx*5000].round()
-    return K, y
+#     # load labels
+#     with gfile.GFile(os.path.join(filedir, 'labels'), 'rb') as f:
+#         labels = np.load(f)
+#     # change encoding from zero-mean [-0.1, 0.9] to one-hot [0, 1]
+#     y = labels[:max_idx*5000].round()
+#     return K, y
