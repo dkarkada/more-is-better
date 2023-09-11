@@ -68,7 +68,7 @@ class ImageData():
         self.train_X, self.train_y = get_xy(raw_train)
         self.test_X, self.test_y = get_xy(raw_test)
 
-    def get_dataset(self, n, rng=None, get="train"):
+    def get_dataset(self, n, rng=None, get="train", flatten=True):
         """Generate an image dataset.
 
         n (int): the dataset size
@@ -93,6 +93,7 @@ class ImageData():
         assert len(X) == n
 
         # flatten
-        X = X.reshape((len(X), -1))
+        if flatten:
+            X = X.reshape((len(X), -1))
 
         return X, y
