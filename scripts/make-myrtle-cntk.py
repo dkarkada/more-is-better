@@ -4,7 +4,7 @@ from jax import numpy as jnp
 import os
 import sys
 
-sys.path.insert(0, '../more-is-better')
+sys.path.insert(0, 'more-is-better')
 
 from kernels import MyrtleNTK
 from ImageData import ImageData
@@ -53,8 +53,6 @@ def set_block(K, block, idx, fn):
     metadata[f"flags_{n//1000}k"][j, i] = 1
     save(metadata, f"{work_dir}/metadata.file")
 
-    print(f"set block ({i}, {j}) of {n//1000}k kernel.")
-
 n = 50000 if DO_50K else 20000
 K_fn = f"{work_dir}/CNTK_{n//1000}k.npy"
 K = load(K_fn)
@@ -99,4 +97,5 @@ for (i, j), done in np.ndenumerate(flags):
     set_block(K, block, (i, j), K_fn)
     assert metadata[f"flags_{n//1000}k"][i, j] == 1
     assert metadata[f"flags_{n//1000}k"][j, i] == 1
-    print()
+    print("done")
+print("all done")
