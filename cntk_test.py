@@ -33,7 +33,7 @@ DO_50K = False
 cifar10 = ImageData('cifar10')
 
 if EXPT_NUM == 1:
-    expt = "cntk5-clean"
+    expt = "cntk5-clean-test"
     dataset = cifar10.get_dataset(50000, flatten=False)
     depth = 5
     msg = "Myrtle depth-5 CNTK @ vanilla CIFAR10"
@@ -49,7 +49,7 @@ if not os.path.exists(work_dir):
 metadata = load(f"{work_dir}/metadata.file")
 if metadata is None:
     metadata = {
-        "flags_20k": np.zeros(4, 4),
+        "flags_20k": np.zeros(1, 1),
         "flags_50k": np.zeros(10, 10),
         "dataset": dataset,
         "msg": msg
@@ -72,7 +72,7 @@ def set_block(K, block, idx, fn):
 
     print(f"set block ({i}, {j}) of {n//1000}k kernel.")
 
-n = 50000 if DO_50K else 20000
+n = 50000 if DO_50K else 5000
 K_fn = f"{work_dir}/CNTK_{n//1000}k.npy"
 K = load(K_fn)
 if K is None:
@@ -81,7 +81,7 @@ if K is None:
 assert K.shape == (n, n)
 
 # copy results from other kernel matrix, if it exists
-n_other = 20000 if DO_50K else 50000
+n_other = 5000 if DO_50K else 50000
 flags_other = metadata[f"flags_{n_other//1000}k"]
 # check that the other kernel matrix is even partially computed
 if flags_other.any():

@@ -81,7 +81,7 @@ def compute_NNGPK(X, nHL=1, nonlin="relu"):
     return np.array(K)
 
 import functools
-def compute_MyrtleNTK(X, depth):
+def MyrtleNTK(depth):
     W_std, b_std = np.sqrt(1), 0.
     architectures = {5: [2, 1, 1], 7: [2, 2, 2], 10: [3, 3, 3]}
     layer_nums = architectures[depth]
@@ -102,8 +102,7 @@ def compute_MyrtleNTK(X, depth):
     _, _, kernel_fn =  stax.serial(*layers)
     # kernel_fn = jit(kernel_fn, static_argnames='get')
     kernel_fn = nt.batch(kernel_fn, batch_size=10, store_on_device=False)
-    K = kernel_fn(X, get='ntk').block_until_ready()
-    return np.array(K)
+    return kernel_fn
 
 # # myrtle cntk loader wants these
 # from tensorflow.io import gfile
