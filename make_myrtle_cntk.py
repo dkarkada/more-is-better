@@ -91,7 +91,7 @@ if flags_other.any():
                 set_block(K, block, (i, j), K_fn)
 
 # iterate over blocks
-X_full, _ = metadata["dataset"]
+X_full, _ = jnp.array(metadata["dataset"])
 flags = metadata[f"flags_{n//1000}k"]
 kernel_fn = MyrtleNTK(depth)
 for (i, j), done in np.ndenumerate(flags):
@@ -103,8 +103,8 @@ for (i, j), done in np.ndenumerate(flags):
     
     args = (X_i,) if i == j else (X_i, X_j)
     # block = kernel_fn(*args, get='ntk').block_until_ready()
-    # block = np.array(block)
-    block = np.einsum('ajk,bjk->ab', X_i, X_j)
+    block = jnp.einsum('ajkl,bjkl->ab', X_i, X_j)
+    block = np.array(block)
     assert block.shape == (5000, 5000)
     set_block(K, block, (i, j), K_fn)
     assert metadata[f"flags_{n//1000}k"][i, j] == 1
