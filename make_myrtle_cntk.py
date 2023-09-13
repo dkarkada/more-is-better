@@ -15,13 +15,7 @@ from neural_tangents import stax
 import os
 import sys
 
-import subprocess
-if os.path.isdir('more-is-better'):
-    print('deleting old repo... ', end='')
-    subprocess.run(["rm", "-rf", "more-is-better"])
-subprocess.run(["git", "clone", "-q", "https://github.com/dkarkada/more-is-better.git"])
 sys.path.insert(0,'more-is-better')
-print('cloned repo')
 
 from kernels import MyrtleNTK
 from ImageData import ImageData
@@ -49,8 +43,8 @@ if not os.path.exists(work_dir):
 metadata = load(f"{work_dir}/metadata.file")
 if metadata is None:
     metadata = {
-        "flags_20k": np.zeros(4, 4),
-        "flags_50k": np.zeros(10, 10),
+        "flags_20k": np.zeros((4, 4)),
+        "flags_50k": np.zeros((10, 10)),
         "dataset": dataset,
         "msg": msg
     }
@@ -76,7 +70,7 @@ n = 50000 if DO_50K else 20000
 K_fn = f"{work_dir}/CNTK_{n//1000}k.npy"
 K = load(K_fn)
 if K is None:
-    K = np.zeros(n, n)
+    K = np.zeros((n, n))
     save(K, K_fn)
 assert K.shape == (n, n)
 
@@ -106,12 +100,13 @@ for (i, j), done in np.ndenumerate(flags):
     print(f"starting ({i}, {j}) block... ", end='')
     X_i = X_full[i*5000:(i+1)*5000]
     X_j = X_full[j*5000:(j+1)*5000]
-    # check code here
     
     args = (X_i,) if i == j else (X_i, X_j)
-    block = kernel_fn(*args, get='ntk').block_until_ready()
-    block = np.array(block)
+    # block = kernel_fn(*args, get='ntk').block_until_ready()
+    # block = np.array(block)
+    block = np.einsum('ajk,bjk->ab', X_i, X_j)
+    assert block.shape == (5000, 5000)
     set_block(K, block, (i, j), K_fn)
     assert metadata[f"flags_{n//1000}k"][i, j] == 1
-    assert metadata[f"flags_{n//1000}k"][j, i] == i
+    assert metadata[f"flags_{n//1000}k"][j, i] == 1
     print()

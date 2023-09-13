@@ -49,8 +49,8 @@ if not os.path.exists(work_dir):
 metadata = load(f"{work_dir}/metadata.file")
 if metadata is None:
     metadata = {
-        "flags_20k": np.zeros(1, 1),
-        "flags_50k": np.zeros(10, 10),
+        "flags_5k": np.zeros((1, 1)),
+        "flags_50k": np.zeros((10, 10)),
         "dataset": dataset,
         "msg": msg
     }
@@ -76,7 +76,7 @@ n = 50000 if DO_50K else 5000
 K_fn = f"{work_dir}/CNTK_{n//1000}k.npy"
 K = load(K_fn)
 if K is None:
-    K = np.zeros(n, n)
+    K = np.zeros((n, n))
     save(K, K_fn)
 assert K.shape == (n, n)
 
@@ -113,5 +113,5 @@ for (i, j), done in np.ndenumerate(flags):
     block = np.array(block)
     set_block(K, block, (i, j), K_fn)
     assert metadata[f"flags_{n//1000}k"][i, j] == 1
-    assert metadata[f"flags_{n//1000}k"][j, i] == i
+    assert metadata[f"flags_{n//1000}k"][j, i] == 1
     print()
