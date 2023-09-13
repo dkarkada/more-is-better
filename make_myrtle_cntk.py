@@ -27,17 +27,17 @@ from kernels import compute_MyrtleNTK
 from ImageData import ImageData
 from utils import save, load
 
-kernel_dir = "/scratch/bbjr/dkarkada/kernel_matrices"
+EXPT_NUM = 1
+DO_50K = False
+
 cifar10 = ImageData('cifar10')
 
-def get_expt(expt_num):
-    if expt_num == 1:
-        expt = "cntk5-clean"
-        dataset = cifar10.get_dataset(50000, flatten=False)
-        msg = "Myrtle depth-5 CNTK @ vanilla CIFAR10"
-    return expt, dataset, msg
+if EXPT_NUM == 1:
+    expt = "cntk5-clean"
+    dataset = cifar10.get_dataset(50000, flatten=False)
+    msg = "Myrtle depth-5 CNTK @ vanilla CIFAR10"
 
-expt, dataset, msg = get_expt(1)
+kernel_dir = "/scratch/bbjr/dkarkada/kernel_matrices"
 work_dir = f"{kernel_dir}/{expt}"
 if not os.path.exists(work_dir):
     os.makedirs(work_dir)
@@ -48,25 +48,66 @@ if not os.path.exists(work_dir):
 metadata = load(f"{work_dir}/metadata.file")
 if metadata is None:
     metadata = {
-        "20k_flags": np.zeros(4, 4),
-        "50k_flags": np.zeros(10, 10),
+        "flags_20k": np.zeros(4, 4),
+        "flags_50k": np.zeros(10, 10),
         "dataset": dataset,
         "msg": msg
     }
     save(metadata, f"{work_dir}/metadata.file")
     with open("readme.txt", 'w') as f:
         f.write(msg)
-    
-K_20k = load(f"{work_dir}/CNTK_20k.npy")
-if K_20k is None:
-    K_20k = np.zeros(20000, 20000)
-    save(K_20k, f"{work_dir}/CNTK_20k.npy")
-assert K_20k.shape == (20000, 20000)
-    
-K_50k = load(f"{work_dir}/CNTK_50k.npy")
-if K_50k is None:
-    K_50k = np.zeros(50000, 50000)
-    save(K_50k, f"{work_dir}/CNTK_50k.npy")
-assert K_50k.shape == (50000, 50000)
+
+def set_block(K, block, idx, fn):
+    i, j = idx
+    K[i*5000:(i+1)*5000, j*5000:(j+1)*5000] = block
+    if i != j:
+        K[j*5000:(j+1)*5000, i*5000:(i+1)*5000] = block.T
+    save(K, fn)
+
+    n = K.shape[0]
+    metadata[f"flags_{n//1000}k"][i, j] = 1
+    metadata[f"flags_{n//1000}k"][j, i] = 1
+    save(metadata, f"{work_dir}/metadata.file")
+
+    print(f"set block ({i}, {j}) of {n//1000}k kernel.")
+
+n = 50000 if DO_50K else 20000
+K_fn = f"{work_dir}/CNTK_{n//1000}k.npy"
+K = load(K_fn)
+if K is None:
+    K = np.zeros(n, n)
+    save(K, K_fn)
+assert K.shape == (n, n)
+
+# copy results from other kernel matrix, if it exists
+n_other = 20000 if DO_50K else 50000
+flags_other = metadata[f"flags_{n_other//1000}k"]
+# check that the other kernel matrix is even partially computed
+if flags_other.any():
+    K_other = load(f"{work_dir}/CNTK_{n_other//1000}k.npy")
+    assert K_other is not None
+    for (i, j), done_other in np.ndenumerate(flags_other):
+        # check that block is within bounds in this matrix (e.g. if other is larger)
+        if i*5000<n and j*5000<n:
+            done = metadata[f"flags_{n//1000}k"][i, j]
+            # check that other block is computed AND this one is not. Then copy
+            if done_other and not done:
+                block = K_other[i*5000:(i+1)*5000, j*5000:(j+1)*5000]
+                set_block(K, block, (i, j), K_fn)
 
 # iterate over blocks
+X_full, _ = metadata["dataset"]
+flags = metadata[f"flags_{n//1000}k"]
+for (i, j), done in np.ndenumerate(flags):
+    if done or i > j:
+        continue
+    print(f"starting ({i}, {j}) block... ", end='')
+    X_i = X_full[i*5000:(i+1)*5000]
+    X_j = X_full[j*5000:(j+1)*5000]
+    # check code here
+    block = compute_MyrtleNTK()
+    set_block(K, block, (i, j), K_fn)
+    assert metadata[f"flags_{n//1000}k"][i, j] == 1
+    assert metadata[f"flags_{n//1000}k"][j, i] == i
+    print()
+    print()
