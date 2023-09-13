@@ -15,7 +15,7 @@ from neural_tangents import stax
 import os
 import sys
 
-sys.path.insert(0,'more-is-better')
+sys.path.insert(0, '../more-is-better')
 
 from kernels import MyrtleNTK
 from ImageData import ImageData
@@ -49,7 +49,7 @@ if metadata is None:
         "msg": msg
     }
     save(metadata, f"{work_dir}/metadata.file")
-    with open("readme.txt", 'w') as f:
+    with open(f"{work_dir}/readme.txt", 'w') as f:
         f.write(msg)
 
 def set_block(K, block, idx, fn):
@@ -103,8 +103,8 @@ for (i, j), done in np.ndenumerate(flags):
     X_j = X_full[j*5000:(j+1)*5000]
     
     args = (X_i,) if i == j else (X_i, X_j)
-    block = kernel_fn(*args, get='ntk').block_until_ready()
-    # block = jnp.einsum('ajkl,bjkl->ab', X_i, X_j)
+    # block = kernel_fn(*args, get='ntk').block_until_ready()
+    block = jnp.einsum('ajkl,bjkl->ab', X_i, X_j)
     block = np.array(block)
     assert block.shape == (5000, 5000)
     set_block(K, block, (i, j), K_fn)
