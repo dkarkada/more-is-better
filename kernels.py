@@ -63,7 +63,7 @@ def compute_FCNTK(X, nHL=2):
     layers += [stax.Dense(width, W_std=1, b_std=0)]
     _, _, kernel_fn = stax.serial(*layers)
     # kernel_fn = jit(kernel_fn, static_argnames='get')
-    kernel_fn = nt.batch(kernel_fn, batch_size=10, store_on_device=False)
+    kernel_fn = nt.batch(kernel_fn, batch_size=250, store_on_device=False)
     K = kernel_fn(X, get='ntk').block_until_ready()
     return np.array(K)
 
@@ -76,7 +76,7 @@ def compute_NNGPK(X, nHL=1, nonlin="relu"):
     layers += [stax.Dense(width, W_std=1, b_std=0)]
     _, _, kernel_fn = stax.serial(*layers)
     # kernel_fn = jit(kernel_fn, static_argnames='get')
-    kernel_fn = nt.batch(kernel_fn, batch_size=10, store_on_device=False)
+    kernel_fn = nt.batch(kernel_fn, batch_size=250, store_on_device=False)
     K = kernel_fn(X, get='nngp').block_until_ready()
     return np.array(K)
 
@@ -101,7 +101,7 @@ def MyrtleNTK(depth):
 
     _, _, kernel_fn =  stax.serial(*layers)
     # kernel_fn = jit(kernel_fn, static_argnames='get')
-    kernel_fn = nt.batch(kernel_fn, batch_size=10, store_on_device=False)
+    kernel_fn = nt.batch(kernel_fn, batch_size=250, store_on_device=False)
     return kernel_fn
 
 # # myrtle cntk loader wants these

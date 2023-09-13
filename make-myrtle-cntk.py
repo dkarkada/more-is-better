@@ -1,16 +1,5 @@
 import numpy as np
-import matplotlib.pyplot as plt
-
-import jax
-import jax.numpy as jnp
-from jax import jit
-
-import torch
-import torch.nn.functional as F
-import torchvision
-
-import neural_tangents as nt
-from neural_tangents import stax
+from jax import numpy as jnp
 
 import os
 import sys
