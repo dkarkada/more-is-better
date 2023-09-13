@@ -103,8 +103,8 @@ for (i, j), done in np.ndenumerate(flags):
     X_j = X_full[j*5000:(j+1)*5000]
     
     args = (X_i,) if i == j else (X_i, X_j)
-    # block = kernel_fn(*args, get='ntk').block_until_ready()
-    block = jnp.einsum('ajkl,bjkl->ab', X_i, X_j)
+    block = kernel_fn(*args, get='ntk').block_until_ready()
+    # block = jnp.einsum('ajkl,bjkl->ab', X_i, X_j)
     block = np.array(block)
     assert block.shape == (5000, 5000)
     set_block(K, block, (i, j), K_fn)
