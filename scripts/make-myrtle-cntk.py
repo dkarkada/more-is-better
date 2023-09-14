@@ -54,7 +54,7 @@ def set_block(K, block, idx, fn):
     save(metadata, f"{work_dir}/metadata.file")
 
 n = 50000 if DO_50K else 20000
-K_fn = f"{work_dir}/CNTK_{n//1000}k.npy"
+K_fn = f"{work_dir}/cntk-{n//1000}k.npy"
 K = load(K_fn)
 if K is None:
     K = np.zeros((n, n))
@@ -66,7 +66,7 @@ n_other = 20000 if DO_50K else 50000
 flags_other = metadata[f"flags_{n_other//1000}k"]
 # check that the other kernel matrix is even partially computed
 if flags_other.any():
-    K_other = load(f"{work_dir}/CNTK_{n_other//1000}k.npy")
+    K_other = load(f"{work_dir}/cntk-{n_other//1000}k.npy")
     assert K_other is not None
     for (i, j), done_other in np.ndenumerate(flags_other):
         # check that block is within bounds in this matrix (e.g. if other is larger)
