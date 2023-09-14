@@ -76,6 +76,7 @@ if flags_other.any():
             if done_other and not done:
                 block = K_other[i*5000:(i+1)*5000, j*5000:(j+1)*5000]
                 set_block(K, block, (i, j), K_fn)
+                print(f"copied block ({i}, {j})")
 
 # iterate over blocks
 X_full, _ = metadata["dataset"]
@@ -85,7 +86,7 @@ kernel_fn = MyrtleNTK(depth)
 for (i, j), done in np.ndenumerate(flags):
     if done or i > j:
         continue
-    print(f"starting ({i}, {j}) block... ", end='')
+    print(f"starting block ({i}, {j})... ", end='')
     X_i = X_full[i*5000:(i+1)*5000]
     X_j = X_full[j*5000:(j+1)*5000]
     

@@ -37,8 +37,8 @@ eigdata = {
     "eigvals": eigvals,
     "eigcoeffs": eigcoeffs
 }
-save(eigdata, f"{work_dir}/eigdata_{n//1000}k.file")
-save(eigvecs, f"{work_dir}/eigvecs_{n//1000}k.npy")
+save(eigdata, f"{work_dir}/eigdata-{n//1000}k.file")
+save(eigvecs, f"{work_dir}/eigvecs-{n//1000}k.npy")
 print("done.")
 
 del K, y, eigvals, eigvecs, eigcoeffs
