@@ -30,13 +30,14 @@ if not os.path.exists(work_dir):
     os.makedirs(work_dir)
 
 # 20k matrix, 50k matrix, done flags for each (per block), dataset, expt description
-# K blocked in 5k chunks
+# K blocked in 10k chunks
+chunk = 10000
 
 metadata = load(f"{work_dir}/metadata.file")
 if metadata is None:
     metadata = {
-        "flags_20k": np.zeros((4, 4)),
-        "flags_50k": np.zeros((10, 10)),
+        "flags_20k": np.zeros((2, 2)),
+        "flags_50k": np.zeros((5, 5)),
         "dataset": dataset,
         "msg": msg
     }
@@ -46,9 +47,9 @@ if metadata is None:
 
 def set_block(K, block, idx, fn):
     i, j = idx
-    K[i*5000:(i+1)*5000, j*5000:(j+1)*5000] = block
+    K[i*chunk:(i+1)*chunk, j*chunk:(j+1)*chunk] = block
     if i != j:
-        K[j*5000:(j+1)*5000, i*5000:(i+1)*5000] = block.T
+        K[j*chunk:(j+1)*chunk, i*chunk:(i+1)*chunk] = block.T
     save(K, fn)
 
     n = K.shape[0]
@@ -73,11 +74,11 @@ if flags_other.any():
     assert K_other is not None
     for (i, j), done_other in np.ndenumerate(flags_other):
         # check that block is within bounds in this matrix (e.g. if other is larger)
-        if i*5000<n and j*5000<n:
+        if i*chunk<n and j*chunk<n:
             done = metadata[f"flags_{n//1000}k"][i, j]
             # check that other block is computed AND this one is not. Then copy
             if done_other and not done:
-                block = K_other[i*5000:(i+1)*5000, j*5000:(j+1)*5000]
+                block = K_other[i*chunk:(i+1)*chunk, j*chunk:(j+1)*chunk]
                 set_block(K, block, (i, j), K_fn)
                 print(f"copied block ({i}, {j})")
 
@@ -90,14 +91,14 @@ for (i, j), done in np.ndenumerate(flags):
     if done or i > j:
         continue
     print(f"starting block ({i}, {j})... ", end='')
-    X_i = X_full[i*5000:(i+1)*5000]
-    X_j = X_full[j*5000:(j+1)*5000]
+    X_i = X_full[i*chunk:(i+1)*chunk]
+    X_j = X_full[j*chunk:(j+1)*chunk]
     
     args = (X_i,) if i == j else (X_i, X_j)
     block = kernel_fn(*args, get='ntk').block_until_ready()
     # block = jnp.einsum('ajkl,bjkl->ab', X_i, X_j)
     block = np.array(block)
-    assert block.shape == (5000, 5000)
+    assert block.shape == (chunk, chunk)
     set_block(K, block, (i, j), K_fn)
     assert metadata[f"flags_{n//1000}k"][i, j] == 1
     assert metadata[f"flags_{n//1000}k"][j, i] == 1
