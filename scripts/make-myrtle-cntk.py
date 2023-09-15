@@ -22,7 +22,7 @@ if EXPT_NUM == 1:
     dataset = cifar10.get_dataset(50000, flatten=False)
     depth = 5
     msg = "Myrtle depth-5 CNTK @ vanilla CIFAR10"
-    do_50k = False
+    do_50k = True
 
 kernel_dir = "/scratch/bbjr/dkarkada/kernel-matrices"
 work_dir = f"{kernel_dir}/{expt}"
