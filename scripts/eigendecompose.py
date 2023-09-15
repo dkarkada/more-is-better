@@ -10,10 +10,10 @@ from kernels import eigendecomp
 from utils import save, load
 
 EXPT_NUM = 1
-DO_50K = False
 
 if EXPT_NUM == 1:
     expt = "cntk5-clean"
+    decomp_sizes = [20, 200, 2000, 20000]
     
 kernel_dir = "/scratch/bbjr/dkarkada/kernel-matrices"
 work_dir = f"{kernel_dir}/{expt}"
@@ -22,23 +22,26 @@ if not os.path.exists(work_dir):
 
 metadata = load(f"{work_dir}/metadata.file")
 assert metadata is not None
-X_full, y_full = metadata["dataset"]
+_, y = metadata["dataset"]
 
-n = 50000 if DO_50K else 20000
-K = load(f"{work_dir}/CNTK_{n//1000}k.npy")
+K = load(f"{work_dir}/cntk-50k.npy")
+if K is None:
+    K = load(f"{work_dir}/cntk-20k.npy")
 assert K is not None
-assert K.shape == (n, n)
-y = y_full[:n]
+assert max(decomp_sizes) <= K.shape[0]
 
-print(f"Eigendecomposing n={n} {expt}... ", end='')
-eigvals, eigvecs, eigcoeffs = eigendecomp(K, y)
-print("done. Saving... ", end='')
-eigdata = {
-    "eigvals": eigvals,
-    "eigcoeffs": eigcoeffs
-}
-save(eigdata, f"{work_dir}/eigdata-{n//1000}k.file")
-save(eigvecs, f"{work_dir}/eigvecs-{n//1000}k.npy")
-print("done.")
+eigdata = load(f"{work_dir}/eigdata.file")
+eigdata = {} if eigdata is None else eigdata
+
+for n in decomp_sizes:
+    print(f"Eigendecomposing n={n} {expt}... ", end='')
+    eigvals, eigvecs, eigcoeffs = eigendecomp(K[:n, :n], y[:n])
+    eigdata[n] = {
+        "eigvals": eigvals,
+        "eigcoeffs": eigcoeffs
+    }
+    save(eigdata, f"{work_dir}/eigdata.file")
+    save(eigvecs, f"{work_dir}/eigvecs-{n//1000}k.npy")
+    print("done.")
 
 del K, y, eigvals, eigvecs, eigcoeffs

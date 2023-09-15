@@ -3,6 +3,9 @@ from jax import numpy as jnp
 
 import os
 import sys
+import time
+
+start_time = time.time()
 
 sys.path.insert(0, 'more-is-better')
 
@@ -11,7 +14,6 @@ from ImageData import ImageData
 from utils import save, load
 
 EXPT_NUM = 1
-DO_50K = False
 
 cifar10 = ImageData('cifar10')
 
@@ -20,6 +22,7 @@ if EXPT_NUM == 1:
     dataset = cifar10.get_dataset(50000, flatten=False)
     depth = 5
     msg = "Myrtle depth-5 CNTK @ vanilla CIFAR10"
+    do_50k = False
 
 kernel_dir = "/scratch/bbjr/dkarkada/kernel-matrices"
 work_dir = f"{kernel_dir}/{expt}"
@@ -53,7 +56,7 @@ def set_block(K, block, idx, fn):
     metadata[f"flags_{n//1000}k"][j, i] = 1
     save(metadata, f"{work_dir}/metadata.file")
 
-n = 50000 if DO_50K else 20000
+n = 50000 if do_50k else 20000
 K_fn = f"{work_dir}/cntk-{n//1000}k.npy"
 K = load(K_fn)
 if K is None:
@@ -62,7 +65,7 @@ if K is None:
 assert K.shape == (n, n)
 
 # copy results from other kernel matrix, if it exists
-n_other = 20000 if DO_50K else 50000
+n_other = 20000 if do_50k else 50000
 flags_other = metadata[f"flags_{n_other//1000}k"]
 # check that the other kernel matrix is even partially computed
 if flags_other.any():
@@ -99,4 +102,4 @@ for (i, j), done in np.ndenumerate(flags):
     assert metadata[f"flags_{n//1000}k"][i, j] == 1
     assert metadata[f"flags_{n//1000}k"][j, i] == 1
     print("done")
-print("all done")
+print(f"all done. hours elapsed: {(time.time()-start_time)/3600:.2f}")

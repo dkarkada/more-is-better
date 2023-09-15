@@ -28,7 +28,6 @@ def save(obj, fn):
 
 def load(fn):
     if not os.path.isfile(fn):
-        print(f"{fn} not found")
         return None
     if fn.endswith('.npy'):
         obj = np.load(fn)
