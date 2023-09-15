@@ -1,14 +1,10 @@
 import numpy as np
-from jax import numpy as jnp
 
 import os
 import sys
-import time
 
 sys.path.insert(0, 'more-is-better')
 
-from kernels import MyrtleNTK
-from ImageData import ImageData
 from utils import save, load
 
 # chunk size 5000 -> 10000
@@ -26,7 +22,7 @@ assert metadata is not None
 def convert(old_flags):
     sz = old_flags.shape[0]
     flags = np.zeros((sz//2, sz//2))
-    for (i, j) in np.ndenumerate(flags):
+    for (i, j) in np.ndindex(flags):
         chunk = old_flags[i*2:(i+1)*2, j*2:(j+1)*2]
         flags[i, j] = chunk.all()
     return flags
