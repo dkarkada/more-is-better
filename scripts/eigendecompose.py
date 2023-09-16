@@ -3,6 +3,9 @@ from jax import numpy as jnp
 
 import os
 import sys
+import time
+
+start_time = time.time()
 
 sys.path.insert(0, 'more-is-better')
 
@@ -48,3 +51,4 @@ for n in decomp_sizes:
     print("done.")
 
 del K, y, eigvals, eigvecs, eigcoeffs
+print(f"all done. hours elapsed: {(time.time()-start_time)/3600:.2f}")
