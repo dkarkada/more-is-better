@@ -22,7 +22,7 @@ assert metadata is not None
 def convert(old_flags):
     sz = old_flags.shape[0]
     flags = np.zeros((sz//2, sz//2))
-    for (i, j) in np.ndindex(flags):
+    for (i, j) in np.ndindex(*flags.shape):
         chunk = old_flags[i*2:(i+1)*2, j*2:(j+1)*2]
         flags[i, j] = chunk.all()
     return flags
@@ -32,4 +32,4 @@ metadata["flags_50k"] = convert(metadata["flags_50k"])
 print(metadata["flags_20k"])
 print(metadata["flags_50k"])
 
-# save(metadata, f"{work_dir}/metadata.file")
+save(metadata, f"{work_dir}/metadata.file")

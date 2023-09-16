@@ -9,11 +9,14 @@ sys.path.insert(0, 'more-is-better')
 from kernels import eigendecomp
 from utils import save, load
 
-EXPT_NUM = 1
+EXPT_NUM = 2
 
 if EXPT_NUM == 1:
     expt = "cntk5-clean"
-    decomp_sizes = [20, 200, 2000, 20000]
+    decomp_sizes = [50, 500, 5000, 50000]
+if EXPT_NUM == 2:
+    expt = "cntk5-clean"
+    decomp_sizes = [50000]
     
 kernel_dir = "/scratch/bbjr/dkarkada/kernel-matrices"
 work_dir = f"{kernel_dir}/{expt}"

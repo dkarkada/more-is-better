@@ -10,8 +10,9 @@ def eigendecomp(K, y):
     n = K.shape[0]
     assert K.shape == (n, n)
     assert y.shape[0] == n and y.ndim == 2
-    K = torch.from_numpy(K).type(torch.float64).cuda()
-    y = torch.from_numpy(y).type(torch.float64).cuda()
+    dtype = torch.float64 if n <= 20000 else torch.float32
+    K = torch.from_numpy(K).type(dtype).cuda()
+    y = torch.from_numpy(y).type(dtype).cuda()
     eigvals, eigvecs = torch.linalg.eigh(K)
     eigvals = eigvals.cpu().numpy()
 
@@ -23,6 +24,7 @@ def eigendecomp(K, y):
     eigvecs = eigvecs.cpu().numpy()
     eigcoeffs = eigcoeffs.cpu().numpy()
     torch.cuda.empty_cache()
+        
     
     # Sort in descending eigval order
     eigvals = eigvals[::-1]
