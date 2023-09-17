@@ -13,7 +13,7 @@ class ImageData():
         'cifar100': torchvision.datasets.CIFAR100,
     }
 
-    def __init__(self, dataset_name, classes=None, binarize=False):
+    def __init__(self, dataset_name, classes=None, binarize=False, normalize=True):
         """
         dataset_name (str): one of  'mnist', 'fmnist', 'cifar10', 'cifar100'
         classes (iterable): a list of groupings of old class labels that each constitute a new class.
@@ -46,7 +46,8 @@ class ImageData():
                 n_classes = int(max(y)) + 1
 
             # normalize globally (correct for the overall mean and std)
-            x = (x - x.mean())/x.std()
+            if normalize:
+                x = (x - x.mean())/x.std()
 
             # onehot encoding, unless binary classification (+1,-1)
             if n_classes == 2 and binarize:
@@ -97,3 +98,35 @@ class ImageData():
             X = X.reshape((len(X), -1))
 
         return X, y
+
+
+def blockwise_shuffle(img, rng, block_size=2):
+    assert img.shape == (32, 32, 3)
+    img = img.copy()
+    sz = block_size
+    def get_start_end(x):
+        start = x*sz
+        end = (x+1)*sz if x < 32//sz else 32
+        return start, end
+    for i in range(32//sz + 1):
+        for j in range(32 // sz + 1):
+            i_start, i_end = get_start_end(i)
+            j_start, j_end = get_start_end(j)
+            block = img[i_start:i_end, j_start:j_end]
+            if block.size == 0:
+                continue
+            shape = block.shape
+            block = block.reshape(-1, 3)
+            rng.shuffle(block)
+            block = block.reshape(*shape)
+            img[i*sz:(i+1)*sz, j*sz:(j+1)*sz] = block
+    return img
+
+
+def shuffle_frac(img, rng, corrupt_fraction=0.5):
+    assert img.shape == (32, 32, 3)
+    mask = rng.binomial(n=1, p=corrupt_fraction, size=(32, 32, 1))
+    block = img.copy().reshape(-1, 3)
+    rng.shuffle(block)
+    block = block.reshape(32, 32, 3)
+    return img*(1-mask) + block*(mask)

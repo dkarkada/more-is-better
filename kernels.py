@@ -6,17 +6,18 @@ import numpy as np
 import neural_tangents as nt
 from neural_tangents import stax
 
-def eigendecomp(K, y):
-    n = K.shape[0]
-    assert K.shape == (n, n)
-    assert y.shape[0] == n and y.ndim == 2
-    dtype = torch.float64 if n <= 20000 else torch.float32
-    K = torch.from_numpy(K).type(dtype).cuda()
-    y = torch.from_numpy(y).type(dtype).cuda()
+# need to use numpy for cpu eigendecomp -- pytorch 32bit-interface can't handle large matrices 
+# see https://github.com/pytorch/pytorch/issues/92141
+
+
+def _gpu_eigd(K, y, n):
+    # K, y numpy arrays
+    K = torch.from_numpy(K).cuda()
+    y = torch.from_numpy(y).cuda()
     eigvals, eigvecs = torch.linalg.eigh(K)
     eigvals = eigvals.cpu().numpy()
 
-    # eigvals are now on CPU; eigvecs still on device
+    # eigvals are now on cpu; eigvecs still on gpu
     eigvals /= n
     eigvecs *= np.sqrt(n)
 
@@ -24,7 +25,27 @@ def eigendecomp(K, y):
     eigvecs = eigvecs.cpu().numpy()
     eigcoeffs = eigcoeffs.cpu().numpy()
     torch.cuda.empty_cache()
-        
+    return eigvals, eigvecs, eigcoeffs
+
+
+def _cpu_eigd(K, y, n):
+    # K, y numpy arrays
+    eigvals, eigvecs = np.linalg.eigh(K)
+
+    eigvals /= n
+    eigvecs *= np.sqrt(n)
+
+    eigcoeffs = (1/n) * eigvecs.T @ y
+    return eigvals, eigvecs, eigcoeffs
+
+
+def eigendecomp(K, y):
+    n = K.shape[0]
+    assert K.shape == (n, n)
+    assert y.shape[0] == n and y.ndim == 2
+    K, y = K.astype(np.float64), y.astype(np.float64)
+    eigd = _gpu_eigd if n <= 20000 else _cpu_eigd
+    eigvals, eigvecs, eigcoeffs = eigd(K, y, n)
     
     # Sort in descending eigval order
     eigvals = eigvals[::-1]

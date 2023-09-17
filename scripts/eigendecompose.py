@@ -12,14 +12,11 @@ sys.path.insert(0, 'more-is-better')
 from kernels import eigendecomp
 from utils import save, load
 
-EXPT_NUM = 2
+EXPT_NUM = 1
 
 if EXPT_NUM == 1:
     expt = "cntk5-clean"
     decomp_sizes = [50, 500, 5000, 50000]
-if EXPT_NUM == 2:
-    expt = "cntk5-clean"
-    decomp_sizes = [50000]
     
 kernel_dir = "/scratch/bbjr/dkarkada/kernel-matrices"
 work_dir = f"{kernel_dir}/{expt}"
@@ -39,8 +36,12 @@ assert max(decomp_sizes) <= K.shape[0]
 eigdata = load(f"{work_dir}/eigdata.file")
 eigdata = {} if eigdata is None else eigdata
 
+print(f"Expt: {expt}")
 for n in decomp_sizes:
-    print(f"Eigendecomposing n={n} {expt}... ", end='')
+    if (n in eigdata) and (load(f"{work_dir}/eigvecs-{n//1000}k.npy") is not None):
+        print(f"Skipping n={n}")
+        continue
+    print(f"Eigendecomposing n={n}... ", end='')
     eigvals, eigvecs, eigcoeffs = eigendecomp(K[:n, :n], y[:n])
     eigdata[n] = {
         "eigvals": eigvals,

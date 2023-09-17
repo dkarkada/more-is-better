@@ -5,7 +5,7 @@ import sys
 sys.path.insert(0,'more-is-better')
 
 from kernels import MyrtleNTK
-from ImageData import ImageData
+from imagedata import ImageData
 import time
 
 def save(results):
