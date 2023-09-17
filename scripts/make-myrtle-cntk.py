@@ -39,9 +39,10 @@ if EXPT_NUM in [2, 3, 4, 5, 6]:
     }
     sz = sizes[EXPT_NUM]
     expt = f"cntk10-{sz}px-block-shuffle"
-    dataset = cifar10.get_dataset(50000, flatten=False)
-    dataset = np.array([blockwise_shuffle(img, RNG, block_size=sz)
-                        for img in dataset])
+    X, y = cifar10.get_dataset(50000, flatten=False)
+    X = np.array([blockwise_shuffle(img, RNG, block_size=sz)
+                  for img in X])
+    dataset = X, y
     depth = 10
     msg = f"Myrtle depth-10 CNTK @ CIFAR10, block-shuffled (blocksize {sz}px)"
     do_50k = False
@@ -51,9 +52,10 @@ if EXPT_NUM in [7, 8, 9]:
     }
     frac = corruption_fracs[EXPT_NUM]
     expt = f"cntk10-{frac*100:.0f}-frac-shuffle"
-    dataset = cifar10.get_dataset(50000, flatten=False)
-    dataset = np.array([shuffle_frac(img, RNG, corrupt_fraction=frac)
-                        for img in dataset])
+    X, y = cifar10.get_dataset(50000, flatten=False)
+    X = np.array([shuffle_frac(img, RNG, corrupt_fraction=frac)
+                  for img in X])
+    dataset = X, y
     depth = 10
     msg = f"Myrtle depth-10 CNTK @ CIFAR10, {frac*100:.0f}% shuffled"
     do_50k = False
