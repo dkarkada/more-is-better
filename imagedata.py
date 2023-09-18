@@ -89,7 +89,7 @@ class ImageData():
         n = int(n)
         assert n > 0
         assert get in ["train", "test"]        
-        full_X, full_y = self.train_X, self.train_y if get == "train" else self.test_X, self.test_y
+        full_X, full_y = (self.train_X, self.train_y) if get == "train" else (self.test_X, self.test_y)
         
         # get subset
         idxs = slice(n) if rng is None else rng.choice(len(full_X), size=n, replace=False)

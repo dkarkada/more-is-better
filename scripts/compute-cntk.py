@@ -59,7 +59,7 @@ with open(f"{work_dir}/readme.txt", 'w') as f:
 dataset = load(f"{work_dir}/dataset.file")
 if dataset is None:
     print("Generating dataset... ", end='')
-    data_generator = ImageData(DATASET_NAME)
+    data_generator = ImageData(DATASET_NAME, work_dir=kernel_dir)
     X, y = data_generator.get_dataset(50000, flatten=False)
     if EXPT_NUM in [10, 11, 12, 13, 14]:
         sz = expt_details["block size"]
