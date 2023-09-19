@@ -49,6 +49,8 @@ def load_kernel(n, work_dir):
         end = (x+1)*sz if x < n//sz else n
         return start, end
     for i, j in np.ndindex(n//sz + 1, n//sz + 1):
+        if i > j:
+            continue
         i_start, i_end = get_start_end(i)
         j_start, j_end = get_start_end(j)
         delta_i, delta_j = i_end-i_start, j_end-j_start
