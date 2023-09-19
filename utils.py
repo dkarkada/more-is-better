@@ -51,10 +51,13 @@ def load_kernel(n, work_dir):
     for i, j in np.ndindex(n//sz + 1, n//sz + 1):
         i_start, i_end = get_start_end(i)
         j_start, j_end = get_start_end(j)
+        delta_i, delta_j = i_end-i_start, j_end-j_start
+        if delta_i * delta_j == 0:
+            continue
         tile = load(f"{work_dir}/tile-{i}-{j}.npy")
         assert tile is not None, f"Tile {i} {j} not yet computed!"
         assert tile.shape == (sz, sz)
-        tile = tile[:i_end-i_start, :j_end-j_start]
+        tile = tile[:delta_i, :delta_j]
         K[i_start:i_end, j_start:j_end] = tile
         if i != j:
             K[j_start:j_end, i_start:i_end] = tile.T

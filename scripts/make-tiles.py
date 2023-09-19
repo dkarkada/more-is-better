@@ -1,5 +1,4 @@
 import numpy as np
-from jax import numpy as jnp
 
 import os
 import sys
@@ -27,7 +26,7 @@ expt_name = expt_details.expt_name
 print(f"tiling {expt_name} cntk @ {DATASET_NAME}")
 
 kernel_dir = "/scratch/bbjr/dkarkada/kernel-matrices"
-work_dir = f"{kernel_dir}/cifar10/{DATASET_NAME}/{expt_name}"
+work_dir = f"{kernel_dir}/{DATASET_NAME}/{expt_name}"
 assert os.path.exists(work_dir), work_dir
 
 # 20k matrix, 50k matrix, done flags for each (per block), dataset, expt description
@@ -51,7 +50,7 @@ flags = metadata[f"flags_{n//1000}k"]
 for (i, j), done in np.ndenumerate(flags):
     if not done or i > j:
         continue
-    print(f"saving block ({i}, {j})... ", end='')
-    block = K[i*sz:(i+1)*sz, j*sz:(j+1)*sz]    
-    save(block, f"{work_dir}/tile-{i}-{j}.npy")
+    print(f"saving tile ({i}, {j})... ", end='')
+    tile = K[i*sz:(i+1)*sz, j*sz:(j+1)*sz]    
+    save(tile, f"{work_dir}/tile-{i}-{j}.npy")
     print("done")
