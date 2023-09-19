@@ -72,8 +72,8 @@ class ImageData():
         self.train_X, self.train_y = process_data(raw_train)
         self.test_X, self.test_y = process_data(raw_test)
         
-        self.train_mean = self.train_X.mean(axis=0)
-        self.train_std = self.train_X.std(axis=0)
+        self.train_mean = self.train_X.mean()
+        self.train_std = self.train_X.std()
 
     def get_dataset(self, n, rng=None, get="train", flatten=True, normalize=True):
         """Generate an image dataset.

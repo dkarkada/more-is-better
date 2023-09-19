@@ -9,57 +9,46 @@ start_time = time.time()
 sys.path.insert(0, 'more-is-better')
 
 from eigsolver import eigsolve
-from utils import save, load
+from utils import save, load, load_kernel
+from exptdetails import ExptDetails
 
 args = sys.argv
 
-EXPT_NUM = int(args[1])
-print(f"Eigendecomposing experiment {EXPT_NUM}")
+DATASET_NAME = str(args[1])
+EXPT_NUM = int(args[2])
+DEPTH = int(args[3])
+N = int(args[4])
 
-if EXPT_NUM == 0:
-    expt = "cntk5-clean"
-    decomp_sizes = [20, 200, 2000, 20000, 30000]
-if EXPT_NUM == 1:
-    expt = "cntk10-clean"
-    decomp_sizes = [20, 200, 2000, 20000]
-if EXPT_NUM in [2, 3, 4, 5, 6]:
-    sizes = {
-        2: 2, 3: 3, 4: 4, 5: 5, 6: 8,
-    }
-    sz = sizes[EXPT_NUM]
-    expt = f"cntk10-{sz}px-block-shuffle"
-    decomp_sizes = [20, 200, 2000, 20000]
-if EXPT_NUM in [7, 8, 9]:
-    corruption_fracs = {
-        7: 0.2, 8: 0.5, 9: 1,
-    }
-    frac = corruption_fracs[EXPT_NUM]
-    expt = f"cntk10-{frac*100:.0f}-frac-shuffle"
-    decomp_sizes = [20, 200, 2000, 20000]
+DATASET_NAME = DATASET_NAME.lower()
+assert DATASET_NAME in ['cifar10', 'cifar100', 'emnist',
+                        'mnist', 'imagenet32', 'imagenet64']
+
+expt_details = ExptDetails(EXPT_NUM, DEPTH, DATASET_NAME)
+expt_name = expt_details.expt_name
+print(f"Eigensolving {expt_name} cntk @ {DATASET_NAME}")
+
+decomp_sizes = [50, 500, 5000, 20000, 30000, 50000]
     
 kernel_dir = "/scratch/bbjr/dkarkada/kernel-matrices"
-work_dir = f"{kernel_dir}/{expt}"
-if not os.path.exists(work_dir):
-    os.makedirs(work_dir)
+work_dir = f"{kernel_dir}/{DATASET_NAME}/{expt_name}"
+assert os.path.exists(work_dir)
 
-metadata = load(f"{work_dir}/metadata.file")
-assert metadata is not None
-_, y = metadata["dataset"]
+dataset = load(f"{work_dir}/dataset.file")
+assert dataset is not None
+_, y = dataset
 
-K = load(f"{work_dir}/cntk-50k.npy")
-if K is None:
-    K = load(f"{work_dir}/cntk-20k.npy")
-assert K is not None
+K = load_kernel(N, work_dir)
 assert np.allclose(K, K.T)
-assert max(decomp_sizes) <= K.shape[0]
 
 eigdata = load(f"{work_dir}/eigdata.file")
 eigdata = {} if eigdata is None else eigdata
 
-print(f"Expt: {expt}")
 for n in decomp_sizes:
+    if n > K.shape[0]:
+        print(f"Skipping n={n}: too big")
+        continue
     if (n in eigdata) and (load(f"{work_dir}/eigvecs-{n//1000}k.npy") is not None):
-        print(f"Skipping n={n}")
+        print(f"Skipping n={n}: already done")
         # print("jk")
         continue
     print(f"Eigensolving n={n}... ", end='')

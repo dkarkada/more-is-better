@@ -10,7 +10,8 @@ start_time = time.time()
 sys.path.insert(0, 'more-is-better')
 
 from kernels import MyrtleNTK
-from imagedata import ImageData, blockwise_shuffle, shuffle_frac
+from imagedata import ImageData
+from exptdetails import ExptDetails
 from utils import save, load
 
 args = sys.argv
@@ -23,56 +24,27 @@ NUM_TILES = int(args[4])
 DATASET_NAME = DATASET_NAME.lower()
 assert DATASET_NAME in ['cifar10', 'cifar100', 'emnist',
                         'mnist', 'imagenet32', 'imagenet64']
-print(f"Computing {NUM_TILES}-tile cntk @ {DATASET_NAME}: expt {EXPT_NUM}")
 
-RNG = np.random.default_rng(seed=42)
-
-expt_details = {}
-if EXPT_NUM == 0:
-    expt = f"myrtle{DEPTH}-clean"
-    msg = f"Myrtle depth-{DEPTH} CNTK @ vanilla {DATASET_NAME}"
-if EXPT_NUM in [10, 11, 12, 13, 14]:
-    sizes = {
-        10: 2, 11: 3, 12: 4, 13: 5, 14: 8,
-    }
-    sz = sizes[EXPT_NUM]
-    expt_details["block size"] = sz
-    expt = f"myrtle{DEPTH}-{sz}px-block-shuffle"
-    msg = f"Myrtle depth-{DEPTH} CNTK @ {DATASET_NAME}, block-shuffled (blocksize {sz}px)"
-if EXPT_NUM in [20, 21, 22]:
-    corruption_fracs = {
-        20: 0.2, 21: 0.5, 22: 1,
-    }
-    frac = corruption_fracs[EXPT_NUM]
-    expt_details["corruption frac"] = frac
-    expt = f"myrtle{DEPTH}-{frac*100:.0f}-frac-shuffle"
-    msg = f"Myrtle depth-{DEPTH} CNTK @ {DATASET_NAME}, {frac*100:.0f}% shuffled"
+expt_details = ExptDetails(EXPT_NUM, DEPTH, DATASET_NAME)
+expt_name = expt_details.expt_name
+print(f"Computing {NUM_TILES}-tile {expt_name} cntk @ {DATASET_NAME}")
 
 kernel_dir = "/scratch/bbjr/dkarkada/kernel-matrices"
-work_dir = f"{kernel_dir}/{DATASET_NAME}/{expt}"
+work_dir = f"{kernel_dir}/{DATASET_NAME}/{expt_name}"
 if not os.path.exists(work_dir):
     print(f"Making directory {work_dir}")
     os.makedirs(work_dir)
 with open(f"{work_dir}/readme.txt", 'w') as f:
-    f.write(msg)
+    f.write(expt_details.msg)
 
 dataset = load(f"{work_dir}/dataset.file")
 if dataset is None:
     print("Generating dataset... ", end='')
     data_generator = ImageData(DATASET_NAME, work_dir=kernel_dir)
-    X, y = data_generator.get_dataset(50000, flatten=False)
-    if EXPT_NUM in [10, 11, 12, 13, 14]:
-        sz = expt_details["block size"]
-        X = np.array([blockwise_shuffle(img, RNG, block_size=sz)
-                      for img in X])
-    if EXPT_NUM in [20, 21, 22]:
-        frac = expt_details["corruption frac"]
-        X = np.array([shuffle_frac(img, RNG, corrupt_fraction=frac)
-                    for img in X])
-    dataset = X, y
+    dataset = data_generator.get_dataset(50000, flatten=False)
+    dataset = expt_details.modify_dataset(dataset)
     save(dataset, f"{work_dir}/dataset.file")
     print("done")
-    
 
 # K tiled in 10k chunks
 tile_size = 10000
