@@ -31,7 +31,7 @@ decomp_sizes = [50, 500, 5000, 20000, 30000, 50000]
     
 kernel_dir = "/scratch/bbjr/dkarkada/kernel-matrices"
 work_dir = f"{kernel_dir}/{DATASET_NAME}/{expt_name}"
-assert os.path.exists(work_dir)
+assert os.path.exists(work_dir), work_dir
 
 dataset = load(f"{work_dir}/dataset.file")
 assert dataset is not None
