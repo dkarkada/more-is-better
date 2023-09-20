@@ -14,6 +14,8 @@ from exptdetails import ExptDetails
 
 args = sys.argv
 
+RNG = np.random.default_rng()
+
 DATASET_NAME = str(args[1])
 EXPT_NUM = int(args[2])
 DEPTH = int(args[3])
@@ -47,19 +49,19 @@ for n in decomp_sizes:
     if n > K.shape[0]:
         print(f"Skipping n={n}: too big")
         continue
-    if (n in eigdata) and (load(f"{work_dir}/eigvecs-{n//1000}k.npy") is not None):
+    if (n in eigdata):
         print(f"Skipping n={n}: already done")
-        # print("jk")
         continue
-    print(f"Eigensolving n={n}... ", end='')
+    print(f"Eigensolving n={n}... ")
     eigvals, eigvecs, eigcoeffs = eigsolve(K[:n, :n], y[:n])
     eigdata[n] = {
         "eigvals": eigvals,
         "eigcoeffs": eigcoeffs
     }
     save(eigdata, f"{work_dir}/eigdata.file")
-    save(eigvecs, f"{work_dir}/eigvecs-{n//1000}k.npy")
-    print("done.")
+    save(eigvecs, f"{work_dir}/eigvecs-{n//1000}k.npy")    
+    print("\tdone.")
+    del eigvals, eigvecs, eigcoeffs
 
-del K, y, eigvals, eigvecs, eigcoeffs
+del K, y
 print(f"all done. hours elapsed: {(time.time()-start_time)/3600:.2f}")

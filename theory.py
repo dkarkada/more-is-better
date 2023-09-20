@@ -2,6 +2,7 @@ import jax.numpy as jnp
 from jax import jit
 import jaxopt
 import numpy as np
+import torch
 
 @jit
 def rf_krr_risk_theory(eigvals, eigcoeffs, n, k, ridge, noise_var=0):
@@ -115,6 +116,7 @@ def get_gaussian_feature_map_closure(RNG, eigvals):
 
 from functools import partial
 
+
 @partial(jit, static_argnames=('n_train'))
 def krr(K, y, ridge, n_train):
     y_train = y[:n_train]
@@ -122,8 +124,8 @@ def krr(K, y, ridge, n_train):
     K_train = K[:n_train, :n_train]
     K_test = K[:, :n_train]
 
-    eye = jnp.eye(n_train)
-    y_hat = K_test @ jnp.linalg.inv(K_train + ridge*eye) @ y_train
+    regularizer = 0 if ridge == 0 else (ridge * jnp.eye(n_train))
+    y_hat = K_test @ jnp.linalg.inv(K_train + regularizer) @ y_train
     # train error
     y_hat_train = y_hat[:n_train]
     train_mse = ((y_train - y_hat_train) ** 2).sum(axis=1).mean()
@@ -131,6 +133,18 @@ def krr(K, y, ridge, n_train):
     y_hat_test = y_hat[n_train:]
     test_mse = ((y_test - y_hat_test) ** 2).sum(axis=1).mean()
     return train_mse, test_mse
+
+
+@jit
+def calc_kappa(n, eigvals, ridge=0):
+    def lrn_sum(kappa):
+        eiglearns = eigvals / (eigvals + kappa)
+        return eiglearns.sum()
+    optimizer = jaxopt.Bisection(lambda kap: lrn_sum(kap) + ridge / kap - n,
+                                 1e-15, 1e10, maxiter=200, check_bracket=False, jit=True)
+    kappa, _ = optimizer.run()
+    return kappa
+
 
 @jit
 def krr_risk_theory(n, eigcoeffs, eigvals, ridge=0, noise_var=0):
@@ -144,14 +158,8 @@ def krr_risk_theory(n, eigcoeffs, eigvals, ridge=0, noise_var=0):
 
     Returns: dict{kappa, overfitting_coeff, train_mse, test_mse}
     """
-
-    def lrn_sum(kappa):
-        eiglearns = eigvals / (eigvals + kappa)
-        return eiglearns.sum()
-
-    optimizer = jaxopt.Bisection(lambda kap: lrn_sum(kap) + ridge / kap - n,
-                                 1e-15, 1e10, maxiter=200, check_bracket=False, jit=True)
-    kappa, _ = optimizer.run()
+    
+    kappa = calc_kappa(n, eigvals, ridge)
     eiglearns = eigvals / (eigvals + kappa)
     e0 = n / (n - (eiglearns**2).sum())
 
@@ -165,3 +173,15 @@ def krr_risk_theory(n, eigcoeffs, eigvals, ridge=0, noise_var=0):
         "train_mse": train_mse,
         "test_mse": test_mse,
     }
+
+
+def estimate_kappa(K):
+    if K.shape[0] > 1000:
+        K = torch.from_numpy(K).cuda()
+        kappa = 1 / torch.linalg.inv(K).trace().cpu().numpy()
+        torch.cuda.empty_cache()
+    else:
+        kappa =  1 / np.linalg.inv(K).trace()
+    return kappa
+
+        
