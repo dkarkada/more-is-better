@@ -34,7 +34,7 @@ class ImageData():
                 X, y = dataset.data.numpy(), dataset.targets.numpy()
                 X = X[:,:,:,None]
             if self.name in ['imagenet32', 'imagenet64']:
-                X, y = dataset
+                X, y = dataset['data'], dataset['labels']
                 
             n_classes = int(max(y)) + 1
 
