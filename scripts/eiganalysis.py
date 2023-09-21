@@ -42,7 +42,7 @@ assert dataset is not None
 _, y = dataset
 
 K = load_kernel(N, work_dir)
-assert np.allclose(K, K.T)
+assert np.allclose(K, K.T), np.sum((K-K.T))**2
 assert K.shape[0] >= MAX_SIZE + 1000
 
 eigdata = load(f"{work_dir}/eigdata.file")

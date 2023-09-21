@@ -40,7 +40,7 @@ assert dataset is not None
 _, y = dataset
 
 K = load_kernel(N, work_dir)
-assert np.allclose(K, K.T)
+assert np.allclose(K, K.T), np.sum((K-K.T))**2
 
 eigdata = load(f"{work_dir}/eigdata.file")
 eigdata = {} if eigdata is None else eigdata
