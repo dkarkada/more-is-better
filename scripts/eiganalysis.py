@@ -10,7 +10,7 @@ start_time = time.time()
 sys.path.insert(0, 'more-is-better')
 
 from utils import save, load, load_kernel, int_logspace
-from theory import calc_kappa, estimate_kappa, rkrr
+from theory import calc_kappa, rkrr
 from exptdetails import ExptDetails
 
 args = sys.argv
@@ -60,7 +60,7 @@ y = torch.from_numpy(y).cuda()
 for i, n in enumerate(sizes):
     print(f"Starting size {n}... ")
     K_sub = K[:n, :n]
-    kappa_estimates[i] = estimate_kappa(K_sub)
+    kappa_estimates[i] = 1 / torch.linalg.inv(K_sub).trace().cpu().numpy()
     true_kappas[i] = calc_kappa(n, eigvals)
     for trial in range(N_TRIALS):
         idxs = RNG.choice(N, size=(n+1000), replace=False)

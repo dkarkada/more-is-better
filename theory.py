@@ -191,15 +191,4 @@ def krr_risk_theory(n, eigcoeffs, eigvals, ridge=0, noise_var=0):
         "train_mse": train_mse,
         "test_mse": test_mse,
     }
-
-
-def estimate_kappa(K):
-    if 1000 < K.shape[0] <= 20000:
-        K = torch.from_numpy(K).cuda()
-        kappa = 1 / torch.linalg.inv(K).trace().cpu().numpy()
-        torch.cuda.empty_cache()
-    else:
-        kappa =  1 / np.linalg.inv(K).trace()
-    return kappa
-
         
