@@ -59,7 +59,7 @@ class ImageData():
                 y = 2*y - 1
                 y = y[:, None] #reshape
             else:
-                y = F.one_hot(torch.Tensor(y)).numpy()
+                y = F.one_hot(torch.Tensor(y).long()).numpy()
 
             return X.astype(np.float64), y.astype(np.float64)
         
