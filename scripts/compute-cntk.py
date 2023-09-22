@@ -52,7 +52,8 @@ tile_size = 10000
 # iterate over tiles
 X_full, _ = dataset
 X_full = jnp.array(X_full)
-kernel_fn = MyrtleNTK(DEPTH)
+img_size = X_full.shape[1]
+kernel_fn = MyrtleNTK(DEPTH, input_size=img_size)
 for i, j in np.ndindex(NUM_TILES, NUM_TILES):
     tile_fn = f"{work_dir}/tile-{i}-{j}.npy"
     if (load(tile_fn) is not None) or i > j:

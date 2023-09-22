@@ -35,6 +35,8 @@ class ImageData():
                 X = X[:,:,:,None]
             if self.name in ['imagenet32', 'imagenet64']:
                 X, y = dataset['data'], dataset['labels']
+                y -= 1
+                X = X.reshape(-1, 32, 32, 3)
                 
             n_classes = int(max(y)) + 1
 
