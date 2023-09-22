@@ -1,5 +1,5 @@
 import numpy as np
-
+import torch
 import os
 import sys
 import time
@@ -9,7 +9,6 @@ start_time = time.time()
 sys.path.insert(0, 'more-is-better')
 
 from utils import save, load, load_kernel, int_logspace
-from theory import calc_kappa, estimate_kappa, krr
 from exptdetails import ExptDetails
 
 args = sys.argv
@@ -24,6 +23,23 @@ N = int(args[4])
 N_SIZES = 10
 N_TRIALS = 1
 MAX_SIZE = 18000
+
+
+def rkrr(K, y, n_train):
+    y_train = y[:n_train]
+    y_test = y[n_train:]
+    K_train = K[:n_train, :n_train]
+    K_test = K[:, :n_train]
+
+    y_hat = K_test @ torch.linalg.inv(K_train) @ y_train
+    # train error
+    y_hat_train = y_hat[:n_train]
+    train_mse = ((y_train - y_hat_train) ** 2).sum(axis=1).mean()
+    # test error
+    y_hat_test = y_hat[n_train:]
+    test_mse = ((y_test - y_hat_test) ** 2).sum(axis=1).mean()
+    return train_mse, test_mse
+
 
 DATASET_NAME = DATASET_NAME.lower()
 assert DATASET_NAME in ['cifar10', 'cifar100', 'emnist',
@@ -44,6 +60,7 @@ _, y = dataset
 K = load_kernel(N, work_dir)
 assert np.allclose(K, K.T), np.sum((K-K.T))**2
 assert K.shape[0] >= MAX_SIZE + 1000
+K = torch.from_numpy(K).cuda()
 
 eigdata = load(f"{work_dir}/eigdata.file")
 assert eigdata is not None, "Must compute eigdata first"
@@ -62,7 +79,7 @@ for i, n in enumerate(sizes):
     for trial in range(N_TRIALS):
         idxs = RNG.choice(N, size=(n+1000), replace=False)
         K_sub, y_sub = K[idxs[:, None], idxs[None, :]], y[idxs]
-        train_mse, test_mse = krr(K_sub, y_sub, ridge=0, n_train=n)
+        train_mse, test_mse = rkrr(K_sub, y_sub, n_train=n)
         test_mses[trial, i] = test_mse
         train_mses[trial, i] = train_mse
     print("\tdone.")
