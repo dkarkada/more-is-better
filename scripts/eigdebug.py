@@ -21,9 +21,9 @@ EXPT_NUM = int(args[2])
 DEPTH = int(args[3])
 N = int(args[4])
 
-N_SIZES = 40
-N_TRIALS = 20
-MAX_SIZE = 28000
+N_SIZES = 10
+N_TRIALS = 1
+MAX_SIZE = 18000
 
 DATASET_NAME = DATASET_NAME.lower()
 assert DATASET_NAME in ['cifar10', 'cifar100', 'emnist',
@@ -31,7 +31,7 @@ assert DATASET_NAME in ['cifar10', 'cifar100', 'emnist',
 
 expt_details = ExptDetails(EXPT_NUM, DEPTH, DATASET_NAME)
 expt_name = expt_details.expt_name
-print(f"Eigenanalysis of {expt_name} cntk @ {DATASET_NAME}")
+print(f"Eigendebug of {expt_name} cntk @ {DATASET_NAME}")
     
 kernel_dir = "/scratch/bbjr/dkarkada/kernel-matrices"
 work_dir = f"{kernel_dir}/{DATASET_NAME}/{expt_name}"
@@ -55,10 +55,10 @@ test_mses = np.zeros((N_TRIALS, N_SIZES))
 train_mses = np.zeros((N_TRIALS, N_SIZES))
 sizes = int_logspace(0, np.log10(MAX_SIZE), num=N_SIZES, base=10)
 for i, n in enumerate(sizes):
-    print(f"Starting size {n}... ")
+    print(f"Starting size {n}... ", end='', flush=True)
     K_sub = K[:n, :n]
-    kappa_estimates[i] = estimate_kappa(K_sub)
-    true_kappas[i] = calc_kappa(n, eigvals)
+    # kappa_estimates[i] = estimate_kappa(K_sub)
+    # true_kappas[i] = calc_kappa(n, eigvals)
     for trial in range(N_TRIALS):
         idxs = RNG.choice(N, size=(n+1000), replace=False)
         K_sub, y_sub = K[idxs[:, None], idxs[None, :]], y[idxs]
@@ -72,9 +72,9 @@ eigstats = {
     "kappa_estimates": kappa_estimates,
     "true_kappas": true_kappas,
     "test_mses": test_mses,
-    "train_mses": train_mses,
+    "train_mses": train_mses
 }
-save(eigstats, f"{work_dir}/eigstats.file")
+save(eigstats, f"{work_dir}/eigdebug.file")
 
 del K, y
 print(f"all done. hours elapsed: {(time.time()-start_time)/3600:.2f}")
