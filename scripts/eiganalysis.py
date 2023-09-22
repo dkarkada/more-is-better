@@ -22,8 +22,8 @@ EXPT_NUM = int(args[2])
 DEPTH = int(args[3])
 N = int(args[4])
 
-N_SIZES = 40
-N_TRIALS = 20
+N_SIZES = 80
+N_TRIALS = 10
 MAX_SIZE = 28000
 
 DATASET_NAME = DATASET_NAME.lower()
@@ -71,6 +71,7 @@ for i, n in enumerate(sizes):
     print("\tdone.")
 
 eigstats = {
+    "eigvals": eigvals,
     "sizes": sizes,
     "kappa_estimates": kappa_estimates,
     "true_kappas": true_kappas,
