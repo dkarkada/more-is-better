@@ -23,40 +23,29 @@ def krr(K, y, ridges, idxs, n_train):
         test_mses.append(test_mse.astype(float))
     return train_mses, test_mses
 
-def krr_expt(expt, n_test, rng, load_dir):
+def krr_expt(expt, K, y, n_test, rng, load_dir):
     n_trains = expt.get_axis("n")
     ridges = expt.get_axis("ridge")
-    kernel_names = expt.get_axis("kernel")
-    with open(f"{load_dir}/eigendata.file", 'rb') as f:
-        eigendata = pickle.load(f)
-
-    for kn in kernel_names:
-        if expt.is_written(kernel=kn):
-            print(f"Already computed {kn}")
+    
+    K = jnp.array(K)
+    y = jnp.array(y)
+    n_total = K.shape[0]
+    assert max(n_trains) + n_test <= n_total
+    for n_train in n_trains:
+        if expt.is_written(kernel=kn, n=n_train):
+            print(f"Already computed n={n_train} on {kn}")
             continue
-        print(f"starting {kn}: ", end='')
-        with open(f"{load_dir}/{kn}.file", 'rb') as f:
-            kernel_data = pickle.load(f)
-        K = jnp.array(kernel_data['K'])
-        K /= (eigendata[kn]["eigvals"]).max()
-        y = jnp.array(kernel_data['y'])
-        n_total = K.shape[0]
-        assert max(n_trains) + n_test <= n_total
-        for n_train in n_trains:
-            if expt.is_written(kernel=kn, n=n_train):
-                print(f"Already computed n={n_train} on {kn}")
-                continue
-            print('.', end='')
-            n = n_train + n_test
-            for trial in trials:
-                idxs = rng.choice(n_total, size=n, replace=False)
-                train_mses, test_mses = krr(K, y, ridges, idxs, n_train)
-                result = onp.array([train_mses, test_mses]).T
-                expt.write(result, n=n_train, kernel=kn, trial=trial)
-        print()
-        for x in jax.devices()[0].client.live_buffers():
-            if x.size > 5000:
-                x.delete()
+        print('.', end='')
+        n = n_train + n_test
+        for trial in trials:
+            idxs = rng.choice(n_total, size=n, replace=False)
+            train_mses, test_mses = krr(K, y, ridges, idxs, n_train)
+            result = onp.array([train_mses, test_mses]).T
+            expt.write(result, n=n_train, kernel=kn, trial=trial)
+    print()
+    for x in jax.devices()[0].client.live_buffers():
+        if x.size > 5000:
+            x.delete()
                 
 DO_SMALL = False
 expt_name = f"ridge-error-{'small' if DO_SMALL else 'large'}-n"

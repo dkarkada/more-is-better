@@ -1,4 +1,5 @@
 import numpy as np
+import torch
 
 import os
 import sys
@@ -9,7 +10,7 @@ start_time = time.time()
 sys.path.insert(0, 'more-is-better')
 
 from utils import save, load, load_kernel, int_logspace
-from theory import calc_kappa, estimate_kappa, krr
+from theory import calc_kappa, estimate_kappa, rkrr
 from exptdetails import ExptDetails
 
 args = sys.argv
@@ -54,6 +55,8 @@ true_kappas = np.zeros(N_SIZES)
 test_mses = np.zeros((N_TRIALS, N_SIZES))
 train_mses = np.zeros((N_TRIALS, N_SIZES))
 sizes = int_logspace(0, np.log10(MAX_SIZE), num=N_SIZES, base=10)
+K = torch.from_numpy(K).cuda()
+y = torch.from_numpy(y).cuda()
 for i, n in enumerate(sizes):
     print(f"Starting size {n}... ")
     K_sub = K[:n, :n]
@@ -62,7 +65,7 @@ for i, n in enumerate(sizes):
     for trial in range(N_TRIALS):
         idxs = RNG.choice(N, size=(n+1000), replace=False)
         K_sub, y_sub = K[idxs[:, None], idxs[None, :]], y[idxs]
-        train_mse, test_mse = krr(K_sub, y_sub, ridge=0, n_train=n)
+        train_mse, test_mse = rkrr(K_sub, y_sub, n_train=n)
         test_mses[trial, i] = test_mse
         train_mses[trial, i] = train_mse
     print("\tdone.")

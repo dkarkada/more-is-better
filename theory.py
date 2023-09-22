@@ -135,6 +135,24 @@ def krr(K, y, ridge, n_train):
     return train_mse, test_mse
 
 
+def rkrr(K, y, n_train):
+    y_train = y[:n_train]
+    y_test = y[n_train:]
+    K_train = K[:n_train, :n_train]
+    K_test = K[:, :n_train]
+
+    y_hat = K_test @ torch.linalg.inv(K_train) @ y_train
+    # train error
+    y_hat_train = y_hat[:n_train]
+    train_mse = ((y_train - y_hat_train) ** 2).sum(axis=1).mean()
+    train_mse = train_mse.cpu().numpy()
+    # test error
+    y_hat_test = y_hat[n_train:]
+    test_mse = ((y_test - y_hat_test) ** 2).sum(axis=1).mean()
+    test_mse = test_mse.cpu().numpy()
+    return train_mse, test_mse
+
+
 @jit
 def calc_kappa(n, eigvals, ridge=0):
     def lrn_sum(kappa):
