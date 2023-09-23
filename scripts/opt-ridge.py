@@ -1,6 +1,4 @@
 import numpy as np
-# import jax
-# jax.config.update('jax_platform_name', 'cpu')
 
 import torch
 
@@ -12,8 +10,7 @@ start_time = time.time()
 
 sys.path.insert(0, 'more-is-better')
 
-from utils import save, load, load_kernel, int_logspace
-from theory import calc_kappa, rkrr
+from utils import save, load, load_kernel
 from eigsolver import eigsolve
 from exptdetails import ExptDetails
 
@@ -59,7 +56,7 @@ noises = np.array([0, 0.5, 5])
 K = torch.from_numpy(K).cuda()
 y = torch.from_numpy(y).cuda()
 K_train, K_test = K[:N, :N], K[:, :N]
-y_train, y_test = y[:N], y[N:]
+y_train, y_test = y[:N], y[N:N+1000]
 
 # do ridgeless noiseless KR
 y_hat = K_test @ torch.linalg.inv(K_train) @ y_train
@@ -68,7 +65,7 @@ base_mse = ((y_test - y_hat_test) ** 2).sum(axis=1).mean()
 
 test_mses = {noise: {} for noise in noises}
 train_mses = {noise: {} for noise in noises}
-eye = torch.eye(N, dtype=torch.float32)
+eye = torch.eye(N, dtype=torch.float32).cuda()
 for noise_relative in noises:
     print(f"Noise {noise_relative}: ", end='')
     # TODO do the noise thing
