@@ -63,8 +63,8 @@ y_hat = K_test @ torch.linalg.inv(K_train) @ y_train
 y_hat_test = y_hat[N:]
 base_mse = ((y_test - y_hat_test) ** 2).sum(axis=1).mean()
 
-test_mses = {noise: {} for noise in noises}
-train_mses = {noise: {} for noise in noises}
+test_mses = {noise: np.zeros(N_RIDGES) for noise in noises}
+train_mses = {noise: np.zeros(N_RIDGES) for noise in noises}
 eye = torch.eye(N, dtype=torch.float32).cuda()
 for noise_relative in noises:
     print(f"Noise {noise_relative}: ", end='')
@@ -72,9 +72,9 @@ for noise_relative in noises:
     y_noise = torch.normal(0, torch.sqrt(noise_absolute),
                            size=y.size(), dtype=torch.float32).cuda()
     norm = 1 + (y.size()[-1])*noise_absolute
-    y_corrupted = (y+y_noise)/np.sqrt(norm)
+    y_corrupted = (y+y_noise)/torch.sqrt(norm)
     y_train, y_test = y_corrupted[:N], y_corrupted[N:N+5000]
-    for ridge in ridges:
+    for i, ridge in enumerate(ridges):
         print('.', end='')
         y_hat = K_test @ torch.linalg.inv(K_train + ridge*eye) @ y_train
         # train error
@@ -86,8 +86,8 @@ for noise_relative in noises:
         test_mse = ((y_test - y_hat_test) ** 2).sum(axis=1).mean()
         test_mse = test_mse.cpu().numpy()
         
-        test_mses[noise_relative][ridge] = test_mse
-        train_mses[noise_relative][ridge] = train_mse
+        test_mses[noise_relative][i] = test_mse
+        train_mses[noise_relative][i] = train_mse
         torch.cuda.empty_cache()
     print()
 
