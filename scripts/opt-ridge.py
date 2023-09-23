@@ -23,7 +23,7 @@ EXPT_NUM = int(args[2])
 DEPTH = int(args[3])
 N = int(args[4])
 
-N_RIDGES = 10
+N_RIDGES = 50
 
 DATASET_NAME = DATASET_NAME.lower()
 assert DATASET_NAME in ['cifar10', 'cifar100', 'emnist',
@@ -46,8 +46,8 @@ assert np.allclose(K, K.T), np.sum((K-K.T))**2
 
 eigvals, eigvecs, eigcoeffs = eigsolve(K[:N, :N], y[:N])
 
-log_max_ridge = int(np.log10(eigvals.max())) + 3
-log_min_ridge = int(np.log10(eigvals.min())) - 3
+log_max_ridge = int(np.log10(N * eigvals.max())) + 3
+log_min_ridge = int(np.log10(N * eigvals.min())) - 3
 print(f"max eigval {eigvals.max():.1e}, min eigval {eigvals.min():.1e}")
 print(f"ridge ranging from 10^{log_min_ridge} to 10^{log_max_ridge}")
 ridges = np.logspace(log_min_ridge, log_max_ridge, base=10, num=N_RIDGES)
@@ -70,14 +70,16 @@ for noise_relative in noises:
     print(f"Noise {noise_relative}: ", end='')
     noise_absolute = noise_relative * base_mse
     y_noise = torch.normal(0, torch.sqrt(noise_absolute),
-                           size=y_train.size(), dtype=torch.float32).cuda()
-    y_train_noisy = y_train+y_noise
+                           size=y.size(), dtype=torch.float32).cuda()
+    norm = 1 + (y.size()[-1])*noise_absolute
+    y_corrupted = (y+y_noise)/np.sqrt(norm)
+    y_train, y_test = y_corrupted[:N], y_corrupted[N:N+5000]
     for ridge in ridges:
         print('.', end='')
-        y_hat = K_test @ torch.linalg.inv(K_train + ridge*eye) @ y_train_noisy
+        y_hat = K_test @ torch.linalg.inv(K_train + ridge*eye) @ y_train
         # train error
         y_hat_train = y_hat[:N]
-        train_mse = ((y_train_noisy - y_hat_train) ** 2).sum(axis=1).mean()
+        train_mse = ((y_train - y_hat_train) ** 2).sum(axis=1).mean()
         train_mse = train_mse.cpu().numpy()
         # test error
         y_hat_test = y_hat[N:]
