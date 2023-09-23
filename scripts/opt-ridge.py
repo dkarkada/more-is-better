@@ -70,14 +70,14 @@ for noise_relative in noises:
     print(f"Noise {noise_relative}: ", end='')
     noise_absolute = noise_relative * base_mse
     y_noise = torch.normal(0, torch.sqrt(noise_absolute),
-                           size=y.size(), dtype=torch.float32).cuda()
-    y_train, y_test = (y+y_noise)[:N], (y+y_noise)[N:N+5000]
+                           size=y_train.size(), dtype=torch.float32).cuda()
+    y_train_noisy = y_train+y_noise
     for ridge in ridges:
         print('.', end='')
-        y_hat = K_test @ torch.linalg.inv(K_train + ridge*eye) @ y_train
+        y_hat = K_test @ torch.linalg.inv(K_train + ridge*eye) @ y_train_noisy
         # train error
         y_hat_train = y_hat[:N]
-        train_mse = ((y_train - y_hat_train) ** 2).sum(axis=1).mean()
+        train_mse = ((y_train_noisy - y_hat_train) ** 2).sum(axis=1).mean()
         train_mse = train_mse.cpu().numpy()
         # test error
         y_hat_test = y_hat[N:]
