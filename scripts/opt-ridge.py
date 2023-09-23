@@ -41,14 +41,14 @@ dataset = load(f"{work_dir}/dataset.file")
 assert dataset is not None
 _, y = dataset
 
-K = load_kernel(N+1000, work_dir)
+K = load_kernel(N+5000, work_dir)
 assert np.allclose(K, K.T), np.sum((K-K.T))**2
 
 eigvals, eigvecs, eigcoeffs = eigsolve(K[:N, :N], y[:N])
 
 log_max_ridge = int(np.log10(eigvals.max())) + 3
 log_min_ridge = int(np.log10(eigvals.min())) - 3
-print(f"max eigval {eigvals.max():.5f}, min eigval {eigvals.min():.5f}")
+print(f"max eigval {eigvals.max():.1e}, min eigval {eigvals.min():.1e}")
 print(f"ridge ranging from 10^{log_min_ridge} to 10^{log_max_ridge}")
 ridges = np.logspace(log_min_ridge, log_max_ridge, base=10, num=N_RIDGES)
 noises = np.array([0, 0.5, 5])
@@ -56,7 +56,7 @@ noises = np.array([0, 0.5, 5])
 K = torch.from_numpy(K).cuda()
 y = torch.from_numpy(y).cuda()
 K_train, K_test = K[:N, :N], K[:, :N]
-y_train, y_test = y[:N], y[N:N+1000]
+y_train, y_test = y[:N], y[N:N+5000]
 
 # do ridgeless noiseless KR
 y_hat = K_test @ torch.linalg.inv(K_train) @ y_train
@@ -68,14 +68,13 @@ train_mses = {noise: {} for noise in noises}
 eye = torch.eye(N, dtype=torch.float32).cuda()
 for noise_relative in noises:
     print(f"Noise {noise_relative}: ", end='')
-    # TODO do the noise thing
     noise_absolute = noise_relative * base_mse
     y_noise = torch.normal(0, torch.sqrt(noise_absolute),
-                           size=y_train.size(), dtype=torch.float32).cuda()
+                           size=y.size(), dtype=torch.float32).cuda()
+    y_train, y_test = (y+y_noise)[:N], (y+y_noise)[N:N+5000]
     for ridge in ridges:
         print('.', end='')
-        K_inv = torch.linalg.inv(K_train + ridge*eye)
-        y_hat = K_test @ K_inv @ (y_train + y_noise)
+        y_hat = K_test @ torch.linalg.inv(K_train + ridge*eye) @ y_train
         # train error
         y_hat_train = y_hat[:N]
         train_mse = ((y_train - y_hat_train) ** 2).sum(axis=1).mean()
@@ -87,6 +86,7 @@ for noise_relative in noises:
         
         test_mses[noise_relative][ridge] = test_mse
         train_mses[noise_relative][ridge] = train_mse
+        torch.cuda.empty_cache()
     print()
 
 results = {
