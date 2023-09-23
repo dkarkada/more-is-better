@@ -71,7 +71,7 @@ for noise_relative in noises:
     # TODO do the noise thing
     noise_absolute = noise_relative * base_mse
     y_noise = torch.normal(0, torch.sqrt(noise_absolute),
-                           size=y_train.size(), dtype=torch.float32)    
+                           size=y_train.size(), dtype=torch.float32).cuda()
     for ridge in ridges:
         print('.', end='')
         K_inv = torch.linalg.inv(K_train + ridge*eye)
