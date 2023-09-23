@@ -135,6 +135,7 @@ def blockwise_shuffle(img, rng, block_size=2):
 def shuffle_frac(img, rng, corrupt_fraction=0.5):
     assert img.shape == (32, 32, 3)
     mask = rng.binomial(n=1, p=corrupt_fraction, size=(32, 32, 1))
+    mask = mask.astype(np.float32)
     block = img.copy().reshape(-1, 3)
     rng.shuffle(block)
     block = block.reshape(32, 32, 3)
