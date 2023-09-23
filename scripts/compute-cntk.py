@@ -65,7 +65,7 @@ for i, j in np.ndindex(NUM_TILES, NUM_TILES):
     
     args = (X_i,) if i == j else (X_i, X_j)
     tile = kernel_fn(*args, get='ntk').block_until_ready()
-    tile = np.array(tile)
+    tile = np.array(tile, dtype=np.float32)
     assert not np.isnan(tile.sum())
     assert tile.shape == (tile_size, tile_size)
     save(tile, tile_fn)

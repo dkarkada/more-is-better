@@ -42,7 +42,7 @@ def load(fn):
 
 
 def load_kernel(n, work_dir):
-    K = np.zeros((n, n))
+    K = np.zeros((n, n), dtype=np.float32)
     sz = 10000
     def get_start_end(x):
         start = x*sz
@@ -57,6 +57,11 @@ def load_kernel(n, work_dir):
         if delta_i * delta_j == 0:
             continue
         tile = load(f"{work_dir}/tile-{i}-{j}.npy")
+        print(f"tile {i} {j} type {tile.dtype}")
+        # if tile.dtype == np.float64:
+        #     save(tile.astype(np.float32), f"{work_dir}/tile-{i}-{j}.npy")
+        # tile = load(f"{work_dir}/tile-{i}-{j}.npy")
+        # assert tile.dtype == np.float32
         assert tile is not None, f"Tile {i} {j} not yet computed!"
         assert tile.shape == (sz, sz)
         tile = tile[:delta_i, :delta_j]

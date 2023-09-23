@@ -1,4 +1,7 @@
 import numpy as np
+import jax
+jax.config.update('jax_platform_name', 'cpu')
+
 import torch
 
 import os
@@ -58,7 +61,7 @@ sizes = int_logspace(0, np.log10(MAX_SIZE), num=N_SIZES, base=10)
 K = torch.from_numpy(K).cuda()
 y = torch.from_numpy(y).cuda()
 for i, n in enumerate(sizes):
-    print(f"Starting size {n}... ")
+    print(f"Starting size {n}... ", end='')
     K_sub = K[:n, :n]
     kappa_estimates[i] = 1 / torch.linalg.inv(K_sub).trace().cpu().numpy()
     true_kappas[i] = calc_kappa(n, eigvals)
@@ -68,6 +71,7 @@ for i, n in enumerate(sizes):
         train_mse, test_mse = rkrr(K_sub, y_sub, n_train=n)
         test_mses[trial, i] = test_mse
         train_mses[trial, i] = train_mse
+        torch.cuda.empty_cache()
     print("\tdone.")
 
 eigstats = {

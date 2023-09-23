@@ -61,7 +61,7 @@ class ImageData():
             else:
                 y = F.one_hot(torch.Tensor(y).long()).numpy()
 
-            return X.astype(np.float64), y.astype(np.float64)
+            return X.astype(np.float32), y.astype(np.float32)
         
         if self.name in ['cifar10','cifar100', 'mnist', 'emnist']:
             raw_train = self.dataset_dict[self.name](root=f'{work_dir}/data', train=True, download=True)
