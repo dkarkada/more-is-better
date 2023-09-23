@@ -27,7 +27,7 @@ N = int(args[4])
 
 N_SIZES = 80
 N_TRIALS = 10
-MAX_SIZE = 28000
+MAX_SIZE = 30000
 
 DATASET_NAME = DATASET_NAME.lower()
 assert DATASET_NAME in ['cifar10', 'cifar100', 'emnist',
@@ -47,7 +47,7 @@ _, y = dataset
 
 K = load_kernel(N, work_dir)
 assert np.allclose(K, K.T), np.sum((K-K.T))**2
-assert K.shape[0] >= MAX_SIZE + 1000
+assert K.shape[0] >= MAX_SIZE + 2000
 
 eigdata = load(f"{work_dir}/eigdata.file")
 assert eigdata is not None, "Must compute eigdata first"
@@ -66,7 +66,7 @@ for i, n in enumerate(sizes):
     kappa_estimates[i] = 1 / torch.linalg.inv(K_sub).trace().cpu().numpy()
     true_kappas[i] = calc_kappa(n, eigvals)
     for trial in range(N_TRIALS):
-        idxs = RNG.choice(N, size=(n+1000), replace=False)
+        idxs = RNG.choice(N, size=(n+2000), replace=False)
         K_sub, y_sub = K[idxs[:, None], idxs[None, :]], y[idxs]
         train_mse, test_mse = rkrr(K_sub, y_sub, n_train=n)
         test_mses[trial, i] = test_mse
