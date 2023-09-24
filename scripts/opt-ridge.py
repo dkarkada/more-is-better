@@ -39,13 +39,18 @@ kernel_dir = "/scratch/bbjr/dkarkada/kernel-matrices"
 work_dir = f"{kernel_dir}/{DATASET_NAME}/{expt_name}"
 assert os.path.exists(work_dir), work_dir
 
+print("loading data and kernel... ", end='')
 dataset = load(f"{work_dir}/dataset.file")
 assert dataset is not None
 _, y = dataset
 y = y[:N+N_TEST]
 
+# # binarize
+# y = 
+
 K = load_kernel(N+N_TEST, work_dir)
 assert np.allclose(K, K.T), np.sum((K-K.T))**2
+print('done')
 
 eigvals, eigvecs, eigcoeffs = eigsolve(K[:N, :N], y[:N])
 
@@ -54,7 +59,7 @@ log_min_ridge = int(np.log10(N * eigvals.min())) - 3
 print(f"max eigval {eigvals.max():.1e}, min eigval {eigvals.min():.1e}")
 print(f"ridge ranging from 10^{log_min_ridge} to 10^{log_max_ridge}")
 ridges = np.logspace(log_min_ridge, log_max_ridge, base=10, num=N_RIDGES)
-noise_rels = np.array([0, 0.5, 5])  # relative noise level
+noise_rels = np.array([0, 0.5, 5, 50])  # relative noise level
 
 K = torch.from_numpy(K).cuda()
 y = torch.from_numpy(y).cuda()
@@ -68,9 +73,10 @@ for noise_relative in noise_rels:
     print(f"relative noise {noise_relative}: ", end='')
     noise_absolute = noise_relative * base_mse
     y_noise = torch.normal(0, 1, size=y.size(), dtype=torch.float32).cuda()
-    y_noise *= torch.sqrt(noise_absolute) / torch.linalg.norm(y_noise, dim=1)
+    y_noise /= torch.linalg.norm(y_noise, dim=1, keepdim=True)
+    y_noise *= np.sqrt(noise_absolute)
     y_corrupted = y + y_noise
-    y_corrupted /= torch.linalg.norm(y_corrupted, dim=1)
+    y_corrupted /= torch.linalg.norm(y_corrupted, dim=1, keepdim=True)
     for i, ridge in enumerate(ridges):
         print('.', end='')
         test_mse, train_mse = krr(K, y_corrupted, n_train=N, ridge=ridge)        
