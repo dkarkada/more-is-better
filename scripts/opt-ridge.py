@@ -50,6 +50,9 @@ y = y[:N+N_TEST]
 
 K = load_kernel(N+N_TEST, work_dir)
 assert np.allclose(K, K.T), np.sum((K-K.T))**2
+
+K = torch.from_numpy(K).cuda()
+y = torch.from_numpy(y).cuda()
 print('done')
 
 eigvals = torch.linalg.eigvalsh(K[:N, :N])
@@ -60,9 +63,6 @@ print(f"max eigval {eigvals.max():.1e}, min eigval {eigvals.min():.1e}")
 print(f"ridge ranging from 10^{log_min_ridge} to 10^{log_max_ridge}")
 ridges = np.logspace(log_min_ridge, log_max_ridge, base=10, num=N_RIDGES)
 noise_rels = np.array([0, 0.5, 5, 50])  # relative noise level
-
-K = torch.from_numpy(K).cuda()
-y = torch.from_numpy(y).cuda()
 
 # do ridgeless noiseless KR
 base_mse, _ = krr(K, y, n_train=N, ridge=0)
