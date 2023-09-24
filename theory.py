@@ -153,6 +153,7 @@ def krr(K, y, n_train, ridge=0):
     y_hat_test = y_hat[n_train:]
     test_mse = ((y_test - y_hat_test) ** 2).sum(axis=1).mean()
     test_mse = test_mse.cpu().numpy()
+    return train_mse, test_mse
 
 
 @jit
