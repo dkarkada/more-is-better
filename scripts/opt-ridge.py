@@ -1,4 +1,6 @@
 import numpy as np
+import jax
+jax.config.update('jax_platform_name', 'cpu')
 
 import torch
 
@@ -11,7 +13,6 @@ start_time = time.time()
 sys.path.insert(0, 'more-is-better')
 
 from utils import save, load, load_kernel
-from eigsolver import eigsolve
 from theory import krr
 from exptdetails import ExptDetails
 
@@ -55,7 +56,7 @@ K = torch.from_numpy(K).cuda()
 y = torch.from_numpy(y).cuda()
 print('done')
 
-eigvals = torch.linalg.eigvalsh(K[:N, :N])
+eigvals = torch.linalg.eigvalsh(K[:N, :N]).cpu().numpy()
 
 log_max_ridge = int(np.log10(N * eigvals.max())) + 3
 log_min_ridge = int(np.log10(N * eigvals.min())) - 3
