@@ -13,7 +13,7 @@ start_time = time.time()
 sys.path.insert(0, 'more-is-better')
 
 from utils import save, load, load_kernel, int_logspace
-from theory import calc_kappa, rkrr
+from theory import calc_kappa, krr
 from exptdetails import ExptDetails
 
 args = sys.argv
@@ -63,12 +63,13 @@ y = torch.from_numpy(y).cuda()
 for i, n in enumerate(sizes):
     print(f"Starting size {n}... ", end='')
     K_sub = K[:n, :n]
-    kappa_estimates[i] = 1 / torch.linalg.inv(K_sub).trace().cpu().numpy()
+    kap_estim = 1 / torch.linalg.pinv(K_sub, hermitian=True).trace()
+    kappa_estimates[i] = kap_estim.cpu().numpy()
     true_kappas[i] = calc_kappa(n, eigvals)
     for trial in range(N_TRIALS):
         idxs = RNG.choice(N, size=(n+2000), replace=False)
         K_sub, y_sub = K[idxs[:, None], idxs[None, :]], y[idxs]
-        train_mse, test_mse = rkrr(K_sub, y_sub, n_train=n)
+        train_mse, test_mse = krr(K_sub, y_sub, n_train=n, ridge=0)
         test_mses[trial, i] = test_mse
         train_mses[trial, i] = train_mse
         torch.cuda.empty_cache()

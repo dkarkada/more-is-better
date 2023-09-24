@@ -118,7 +118,7 @@ from functools import partial
 
 
 @partial(jit, static_argnames=('n_train'))
-def krr(K, y, ridge, n_train):
+def krr_jax(K, y, ridge, n_train):
     y_train = y[:n_train]
     y_test = y[n_train:]
     K_train = K[:n_train, :n_train]
@@ -135,13 +135,16 @@ def krr(K, y, ridge, n_train):
     return train_mse, test_mse
 
 
-def rkrr(K, y, n_train):
-    y_train = y[:n_train]
-    y_test = y[n_train:]
-    K_train = K[:n_train, :n_train]
-    K_test = K[:, :n_train]
-
-    y_hat = K_test @ torch.linalg.inv(K_train) @ y_train
+def krr(K, y, n_train, ridge=0):
+    K_train, K_test = K[:n_train, :n_train], K[:, :n_train]
+    y_train, y_test = y[:n_train], y[n_train:]
+    
+    if ridge == 0:
+        alpha = torch.linalg.lstsq(K_train, y_train).solution
+    else:
+        eye = torch.eye(n_train, dtype=torch.float32).cuda()
+        alpha = torch.linalg.lstsq(K_train + ridge*eye, y_train).solution
+    y_hat = K_test @ alpha
     # train error
     y_hat_train = y_hat[:n_train]
     train_mse = ((y_train - y_hat_train) ** 2).sum(axis=1).mean()
@@ -150,7 +153,6 @@ def rkrr(K, y, n_train):
     y_hat_test = y_hat[n_train:]
     test_mse = ((y_test - y_hat_test) ** 2).sum(axis=1).mean()
     test_mse = test_mse.cpu().numpy()
-    return train_mse, test_mse
 
 
 @jit

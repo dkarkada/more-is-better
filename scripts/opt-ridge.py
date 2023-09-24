@@ -12,6 +12,7 @@ sys.path.insert(0, 'more-is-better')
 
 from utils import save, load, load_kernel
 from eigsolver import eigsolve
+from theory import krr
 from exptdetails import ExptDetails
 
 args = sys.argv
@@ -24,6 +25,7 @@ DEPTH = int(args[3])
 N = int(args[4])
 
 N_RIDGES = 50
+N_TEST = 5000
 
 DATASET_NAME = DATASET_NAME.lower()
 assert DATASET_NAME in ['cifar10', 'cifar100', 'emnist',
@@ -40,8 +42,9 @@ assert os.path.exists(work_dir), work_dir
 dataset = load(f"{work_dir}/dataset.file")
 assert dataset is not None
 _, y = dataset
+y = y[:N+N_TEST]
 
-K = load_kernel(N+5000, work_dir)
+K = load_kernel(N+N_TEST, work_dir)
 assert np.allclose(K, K.T), np.sum((K-K.T))**2
 
 eigvals, eigvecs, eigcoeffs = eigsolve(K[:N, :N], y[:N])
@@ -51,41 +54,26 @@ log_min_ridge = int(np.log10(N * eigvals.min())) - 3
 print(f"max eigval {eigvals.max():.1e}, min eigval {eigvals.min():.1e}")
 print(f"ridge ranging from 10^{log_min_ridge} to 10^{log_max_ridge}")
 ridges = np.logspace(log_min_ridge, log_max_ridge, base=10, num=N_RIDGES)
-noises = np.array([0, 0.5, 5])
+noise_rels = np.array([0, 0.5, 5])  # relative noise level
 
 K = torch.from_numpy(K).cuda()
 y = torch.from_numpy(y).cuda()
-K_train, K_test = K[:N, :N], K[:, :N]
-y_train, y_test = y[:N], y[N:N+5000]
 
 # do ridgeless noiseless KR
-y_hat = K_test @ torch.linalg.inv(K_train) @ y_train
-y_hat_test = y_hat[N:]
-base_mse = ((y_test - y_hat_test) ** 2).sum(axis=1).mean()
+base_mse, _ = krr(K, y, n_train=N, ridge=0)
 
-test_mses = {noise: np.zeros(N_RIDGES) for noise in noises}
-train_mses = {noise: np.zeros(N_RIDGES) for noise in noises}
-eye = torch.eye(N, dtype=torch.float32).cuda()
-for noise_relative in noises:
-    print(f"Noise {noise_relative}: ", end='')
+test_mses = {noise: np.zeros(N_RIDGES) for noise in noise_rels}
+train_mses = {noise: np.zeros(N_RIDGES) for noise in noise_rels}
+for noise_relative in noise_rels:
+    print(f"relative noise {noise_relative}: ", end='')
     noise_absolute = noise_relative * base_mse
-    y_noise = torch.normal(0, torch.sqrt(noise_absolute),
-                           size=y.size(), dtype=torch.float32).cuda()
-    norm = 1 + (y.size()[-1])*noise_absolute
-    y_corrupted = (y+y_noise)/torch.sqrt(norm)
-    y_train, y_test = y_corrupted[:N], y_corrupted[N:N+5000]
+    y_noise = torch.normal(0, 1, size=y.size(), dtype=torch.float32).cuda()
+    y_noise *= torch.sqrt(noise_absolute) / torch.linalg.norm(y_noise, dim=1)
+    y_corrupted = y + y_noise
+    y_corrupted /= torch.linalg.norm(y_corrupted, dim=1)
     for i, ridge in enumerate(ridges):
         print('.', end='')
-        y_hat = K_test @ torch.linalg.inv(K_train + ridge*eye) @ y_train
-        # train error
-        y_hat_train = y_hat[:N]
-        train_mse = ((y_train - y_hat_train) ** 2).sum(axis=1).mean()
-        train_mse = train_mse.cpu().numpy()
-        # test error
-        y_hat_test = y_hat[N:]
-        test_mse = ((y_test - y_hat_test) ** 2).sum(axis=1).mean()
-        test_mse = test_mse.cpu().numpy()
-        
+        test_mse, train_mse = krr(K, y_corrupted, n_train=N, ridge=ridge)        
         test_mses[noise_relative][i] = test_mse
         train_mses[noise_relative][i] = train_mse
         torch.cuda.empty_cache()
@@ -93,7 +81,7 @@ for noise_relative in noises:
 
 results = {
     "ridges": ridges,
-    "noises": noises,
+    "noise_rels": noise_rels,
     "test_mses": test_mses,
     "train_mses": train_mses,
 }
