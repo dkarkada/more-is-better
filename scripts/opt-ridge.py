@@ -52,7 +52,7 @@ K = load_kernel(N+N_TEST, work_dir)
 assert np.allclose(K, K.T), np.sum((K-K.T))**2
 print('done')
 
-eigvals, eigvecs, eigcoeffs = eigsolve(K[:N, :N], y[:N])
+eigvals = torch.linalg.eigvalsh(K[:N, :N])
 
 log_max_ridge = int(np.log10(N * eigvals.max())) + 3
 log_min_ridge = int(np.log10(N * eigvals.min())) - 3
