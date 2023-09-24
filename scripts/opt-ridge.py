@@ -58,8 +58,8 @@ print('done')
 
 eigvals = torch.linalg.eigvalsh(K[:N, :N]).cpu().numpy()
 
-log_max_ridge = int(np.log10(N * eigvals.max())) + 3
-log_min_ridge = int(np.log10(N * eigvals.min())) - 3
+log_max_ridge = int(np.log10(eigvals.max())) + 3
+log_min_ridge = int(np.log10(eigvals.min())) - 3
 print(f"max eigval {eigvals.max():.1e}, min eigval {eigvals.min():.1e}")
 print(f"ridge ranging from 10^{log_min_ridge} to 10^{log_max_ridge}")
 ridges = np.logspace(log_min_ridge, log_max_ridge, base=10, num=N_RIDGES)
