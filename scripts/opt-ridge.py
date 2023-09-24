@@ -41,21 +41,22 @@ work_dir = f"{kernel_dir}/{DATASET_NAME}/{expt_name}"
 assert os.path.exists(work_dir), work_dir
 
 print("loading data and kernel... ", end='')
+# load dataset
 dataset = load(f"{work_dir}/dataset.file")
 assert dataset is not None
 _, y = dataset
 y = y[:N+N_TEST]
-
-# # binarize
+# binarize
 # y = 
-
+# load kernel
 K = load_kernel(N+N_TEST, work_dir)
 assert np.allclose(K, K.T), np.sum((K-K.T))**2
-
+# to GPU
 K = torch.from_numpy(K).cuda()
 y = torch.from_numpy(y).cuda()
 print('done')
 
+# these eigvals aren't normalized; lambda ~ ridge here (c.f. theory, lambda~ridge/N)
 eigvals = torch.linalg.eigvalsh(K[:N, :N]).cpu().numpy()
 
 log_max_ridge = int(np.log10(eigvals.max())) + 3
@@ -66,7 +67,7 @@ ridges = np.logspace(log_min_ridge, log_max_ridge, base=10, num=N_RIDGES)
 noise_rels = np.array([0, 0.5, 5, 50])  # relative noise level
 
 # do ridgeless noiseless KR
-base_mse, _ = krr(K, y, n_train=N, ridge=0)
+_, base_mse = krr(K, y, n_train=N, ridge=0)
 
 test_mses = {noise: np.zeros(N_RIDGES) for noise in noise_rels}
 train_mses = {noise: np.zeros(N_RIDGES) for noise in noise_rels}
@@ -80,7 +81,7 @@ for noise_relative in noise_rels:
     y_corrupted /= torch.linalg.norm(y_corrupted, dim=1, keepdim=True)
     for i, ridge in enumerate(ridges):
         print('.', end='')
-        test_mse, train_mse = krr(K, y_corrupted, n_train=N, ridge=ridge)        
+        train_mse, test_mse = krr(K, y_corrupted, n_train=N, ridge=ridge)        
         test_mses[noise_relative][i] = test_mse
         train_mses[noise_relative][i] = train_mse
         torch.cuda.empty_cache()
