@@ -4,6 +4,35 @@ import jaxopt
 import numpy as np
 import torch
 
+
+def krr_risk_theory(n, eigcoeffs, eigvals, ridge=0, noise_var=0):
+    """Get theoretical quantities of interest for a given learning problem and dataset size.
+    n (float): training dataset size
+    eigcoeffs (jax or numpy array): the coefficients of the target function in the
+        eigenbasis (ordered by decreasing eigenvalue)
+    eigvals (jax or numpy array): kernel eigenvalues in decreasing order
+    ridge (float): ridge parameter. Default: 0
+    noise_var (float): The variance of the noise. Default: 0
+
+    Returns: dict{kappa, overfitting_coeff, train_mse, test_mse}
+    """
+    
+    kappa = calc_kappa(n, eigvals, ridge)
+    eiglearns = eigvals / (eigvals + kappa)
+    e0 = n / (n - (eiglearns**2).sum())
+
+    # compute mse
+    test_mse = e0 * (((1-eiglearns)**2 * eigcoeffs**2).sum() + noise_var)
+    train_mse = (ridge / (n * kappa))**2 * test_mse
+
+    return {
+        "kappa": kappa,
+        "overfitting_coeff": e0,
+        "train_mse": train_mse,
+        "test_mse": test_mse,
+    }
+      
+      
 @jit
 def rf_krr_risk_theory(eigvals, eigcoeffs, n, k, ridge, noise_var=0):
     """
@@ -63,7 +92,7 @@ def rf_krr_risk_theory(eigvals, eigcoeffs, n, k, ridge, noise_var=0):
 
 
 @jit
-def rf_krr(train_features, test_features, keep_inds, train_y, test_y, ridges):
+def rf_krr_jax(train_features, test_features, keep_inds, train_y, test_y, ridges):
     num_features = train_features.shape[-1]
     k = len(keep_inds)
     scale = jnp.sqrt(num_features/k)
@@ -87,36 +116,19 @@ def rf_krr(train_features, test_features, keep_inds, train_y, test_y, ridges):
     return train_mses, test_mses
 
 
-def get_gaussian_dataset_closure(RNG, eigcoeffs, noise_var):
-    noise_amp = np.sqrt(noise_var)
-    m = len(eigcoeffs)
-
-    def get_gaussian_dataset(n):
-        X = RNG.standard_normal(size=(n, m))        
-        y = X @ eigcoeffs + noise_amp*RNG.standard_normal(size=n)
-        y = y[:, None]
-
-        return (jnp.array(X), jnp.array(y))
-
-    return get_gaussian_dataset
-
-
-def get_gaussian_feature_map_closure(RNG, eigvals):
-    in_dim = len(eigvals)
-
-    def get_gaussian_feature_map():
-        proj = RNG.standard_normal(size=(in_dim, in_dim)) / jnp.sqrt(in_dim)
-        F = jnp.einsum('ij,j->ij', proj, jnp.sqrt(eigvals))
-        def gaussian_feature_map(X):
-            return (F @ X.T).T
-        return gaussian_feature_map
-
-    return get_gaussian_feature_map
-
+def rf_krr(features, keep_inds, y, n_train, ridges):
+    scale = len(features.shape[-1])/len(keep_inds)
+    K_rf = features[:, keep_inds] @ features[:, keep_inds].T
+    K_rf *= scale
+    train_mses, test_mses = np.zeros(2, len(ridges))
+    for i, ridge in enumerate(ridges):
+        train_mse, test_mse = krr(K_rf, y, n_train, ridge)
+        train_mses[i] = train_mse
+        test_mses[i] = test_mse
+    return train_mses, test_mses
+    
 
 from functools import partial
-
-
 @partial(jit, static_argnames=('n_train'))
 def krr_jax(K, y, ridge, n_train):
     y_train = y[:n_train]
@@ -165,33 +177,4 @@ def calc_kappa(n, eigvals, ridge=0):
                                  1e-15, 1e10, maxiter=200, check_bracket=False, jit=True)
     kappa, _ = optimizer.run()
     return kappa
-
-
-@jit
-def krr_risk_theory(n, eigcoeffs, eigvals, ridge=0, noise_var=0):
-    """Get theoretical quantities of interest for a given learning problem and dataset size.
-    n (float): training dataset size
-    eigcoeffs (jax or numpy array): the coefficients of the target function in the
-        eigenbasis (ordered by decreasing eigenvalue)
-    eigvals (jax or numpy array): kernel eigenvalues in decreasing order
-    ridge (float): ridge parameter. Default: 0
-    noise_var (float): The variance of the noise. Default: 0
-
-    Returns: dict{kappa, overfitting_coeff, train_mse, test_mse}
-    """
-    
-    kappa = calc_kappa(n, eigvals, ridge)
-    eiglearns = eigvals / (eigvals + kappa)
-    e0 = n / (n - (eiglearns**2).sum())
-
-    # compute mse
-    test_mse = e0 * (((1-eiglearns)**2 * eigcoeffs**2).sum() + noise_var)
-    train_mse = (ridge / (n * kappa))**2 * test_mse
-
-    return {
-        "kappa": kappa,
-        "overfitting_coeff": e0,
-        "train_mse": train_mse,
-        "test_mse": test_mse,
-    }
-        
+  

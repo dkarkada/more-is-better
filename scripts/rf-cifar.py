@@ -3,6 +3,7 @@ import jax
 jax.config.update('jax_platform_name', 'cpu')
 
 import torch
+import torch.nn.functional as torchfun
 
 import os
 import sys
@@ -12,79 +13,74 @@ start_time = time.time()
 
 sys.path.insert(0, 'more-is-better')
 
-from utils import save, load, load_kernel
-from eigsolver import eigsolve
-from exptdetails import ExptDetails
+from utils import save, load
+from theory import rf_krr_risk_theory
+from imagedata import ImageData
 from ExperimentResults import ExperimentResults
 
 args = sys.argv
 
 RNG = np.random.default_rng()
 
-DATASET_NAME = str(args[1])
-EXPT_NUM = int(args[2])
-DEPTH = int(args[3])
-N = int(args[4])
+# n_train up to 10000, k up to 10000
 
 N_SIZES = 31
 N_TRIALS = 15
-N_RIDGES = 
+N_RIDGES = 31
 
-DATASET_NAME = DATASET_NAME.lower()
-assert DATASET_NAME in ['cifar10', 'cifar100', 'emnist',
-                        'mnist', 'imagenet32', 'imagenet64']
+DATASET_NAME = 'cifar10'
+CIFAR_SZ = 3072
+BINARIZATION = [[0, 1, 7, 8, 9], [2, 3, 4, 5, 6]]
 
-expt_details = ExptDetails(EXPT_NUM, DEPTH, DATASET_NAME)
-expt_name = expt_details.expt_name
-print(f"Optimal ridge: {expt_name} @ {DATASET_NAME}")
-    
+print(f"RF expt: cifar10")
+
 kernel_dir = "/scratch/bbjr/dkarkada/kernel-matrices"
-work_dir = f"{kernel_dir}/{DATASET_NAME}/{expt_name}"
+work_dir = f"{kernel_dir}/{DATASET_NAME}/fc1-nngpk"
 assert os.path.exists(work_dir), work_dir
 
 dataset = load(f"{work_dir}/dataset.file")
-assert dataset is not None
-_, y = dataset
+if dataset is None:
+    print("Generating dataset... ", end='')
+    data_generator = ImageData(DATASET_NAME, classes=BINARIZATION, work_dir=kernel_dir)
+    dataset = data_generator.get_dataset(50000, flatten=True)
+    save(dataset, f"{work_dir}/dataset.file")
+    print("done")
+X, y = dataset
+X = torch.from_numpy(X).cuda()
+y = torch.from_numpy(y).cuda()
 
-RNG = onp.random.default_rng(seed=42)
 
-## START EXPERIMENT
 
-def get_cifar10_dataset_closure():
-    cifar10 = ImageData("cifar10", classes=binarization)
-
-    def get_cifar10_dataset(n):
-        train_X, train_y, test_X, test_y = cifar10.get_dataset(n, n_test=1000, rng=RNG)
-        return (jnp.array(train_X), jnp.array(train_y),
-                jnp.array(test_X), jnp.array(test_y))
-
-    return get_cifar10_dataset
-
+def get_cifar10_dataset(n):
+    idxs = RNG.choice(N, size=n, replace=False)
+    return X[idxs], y[idxs]
 
 def get_relu_feature_map():
     w = 10000 # width
-    W = jnp.array(onp.sqrt(2/3072) * RNG.standard_normal(size=(w, 3072)))
+    # W = torch.from_numpy(np.sqrt(2/CIFAR_SZ) * RNG.standard_normal(size=(w, CIFAR_SZ))).cuda()
+    W = torch.sqrt(2/CIFAR_SZ) * torch.normal(0, 1, size=(w, CIFAR_SZ))
     def relu_feature_map(X):
         # factor sqrt(1/w) to ensure kernel is O(1)
-        WX = jnp.sqrt(1/w) * (W @ X.T).T
-        return jax.nn.relu(WX)
+        WX = torch.sqrt(1/w) * (W @ X.T).T
+        return torchfun.relu_(WX)
     return relu_feature_map
 
+# ensure eigcoeffs are torch tensor
 
-
-binarization = [[0, 1, 7, 8, 9], [2, 3, 4, 5, 6]]
-meta = {
-    "binarization": binarization,
+results = {
+    "binarization": BINARIZATION,
 }
 
-with open(f"{kernel_dir}/20k/eigendata.file", 'rb') as f:
-    eigendata = pickle.load(f)
-eigvals = eigendata["relu_kernel_cifar10"]["eigvals"]
-eigcoeffs = eigendata["relu_kernel_cifar10"]["eigcoeffs"]
-eigcoeffs = eigcoeffs[:, binarization[0]].sum(axis=1) \
-             - eigcoeffs[:, binarization[1]].sum(axis=1)
-eigcoeffs /= onp.linalg.norm(eigcoeffs)
-idxs = 1 + onp.arange(len(eigvals))
+eigdata = load(f"{work_dir}/eigdata.file")
+assert eigdata is not None, "Must compute eigdata first"
+num_eigvals = max(eigdata.keys())
+eigvals = eigdata[num_eigvals]["eigvals"]
+eigcoeffs = eigdata[num_eigvals]["eigcoeffs"]
+eigcoeffs = eigcoeffs[:, BINARIZATION[0]].sum(axis=1) \
+             - eigcoeffs[:, BINARIZATION[1]].sum(axis=1)
+eigcoeffs /= np.linalg.norm(eigcoeffs)
+
+#continue from here
 
 # put on CPU to speed up theory calculation
 cpus = jax.devices("cpu")
@@ -118,12 +114,13 @@ def run_rf_theory(theory, eigvals, eigcoeffs, noise_var):
         for k in kk:
             print('.', end='')
             for ridge in ridges:
-                mse, kappa, gamma = rf_risk_prediction(eigvals, eigcoeffs, n, k, ridge, noise_var)
+                mse, kappa, gamma = rf_krr_risk_theory(eigvals, eigcoeffs, n, k, ridge, noise_var)
                 theory.write(kappa, n=n, k=k, ridge=ridge, result="kappa", save_after=False)
                 theory.write(gamma, n=n, k=k, ridge=ridge, result="gamma", save_after=False)
                 theory.write(mse, n=n, k=k, ridge=ridge, result="test_mse", save_after=False)
         theory.save()
         print()
+
 
 
 

@@ -26,7 +26,7 @@ DEPTH = int(args[3])
 N = int(args[4])
 
 N_RIDGES = 50
-N_TEST = 5000
+N_TEST = 10000
 
 DATASET_NAME = DATASET_NAME.lower()
 assert DATASET_NAME in ['cifar10', 'cifar100', 'svhn', 'emnist',
@@ -77,7 +77,7 @@ for noise_relative in noise_rels:
     print(f"relative noise {noise_relative}: ", end='')
     noise_absolute = noise_relative * base_mse
     y_noise = torch.normal(0, 1, size=y.size(), dtype=torch.float32).cuda()
-    y_noise *= np.sqrt(noise_absolute / y_noise.size()[-1])
+    y_noise *= torch.sqrt(noise_absolute / y_noise.size()[-1])
     y_corrupted = y + y_noise
     y_corrupted /= torch.linalg.norm(y_corrupted, dim=1, keepdim=True)
     for i, ridge in enumerate(ridges):
