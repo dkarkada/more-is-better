@@ -1,6 +1,6 @@
 import numpy as np
-# import jax
-# jax.config.update('jax_platform_name', 'cpu')
+import jax
+jax.config.update('jax_platform_name', 'cpu')
 
 import torch
 
@@ -77,8 +77,7 @@ for i, n in enumerate(sizes):
         torch.cuda.empty_cache()
     print("\tdone.")
 
-noise = torch.normal(0, 1, size=y.size(), dtype=torch.float32).cuda()
-noise /= np.sqrt(noise.size()[-1])
+noise = torch.normal(0, 1, size=(N, 1), dtype=torch.float32).cuda()
 _, test_mse_noise = krr(K, noise, n_train=MAX_SIZE)
 
 eigstats = {
