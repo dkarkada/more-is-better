@@ -47,7 +47,9 @@ assert dataset is not None
 _, y = dataset
 y = y[:N+N_TEST]
 # binarize
-# y = 
+class_1 = y[:, [0, 4, 6, 8, 9]].sum(axis=1)
+class_2 = y[:, [1, 2, 3, 5, 7]].sum(axis=1)
+y = np.stack([class_1, class_2]).T
 # load kernel
 K = load_kernel(N+N_TEST, work_dir)
 assert np.allclose(K, K.T), np.sum((K-K.T))**2
@@ -64,7 +66,7 @@ log_min_ridge = int(np.log10(eigvals.min())) - 3
 print(f"max eigval {eigvals.max():.1e}, min eigval {eigvals.min():.1e}")
 print(f"ridge ranging from 10^{log_min_ridge} to 10^{log_max_ridge}")
 ridges = np.logspace(log_min_ridge, log_max_ridge, base=10, num=N_RIDGES)
-noise_rels = np.array([0, 0.5, 5, 50])  # relative noise level
+noise_rels = np.array([0, 1, 5, 50])  # relative noise level
 
 # do ridgeless noiseless KR
 _, base_mse = krr(K, y, n_train=N, ridge=0)
