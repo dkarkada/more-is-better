@@ -77,8 +77,7 @@ for noise_relative in noise_rels:
     print(f"relative noise {noise_relative}: ", end='')
     noise_absolute = noise_relative * base_mse
     y_noise = torch.normal(0, 1, size=y.size(), dtype=torch.float32).cuda()
-    y_noise /= torch.linalg.norm(y_noise, dim=1, keepdim=True)
-    y_noise *= np.sqrt(noise_absolute)
+    y_noise *= np.sqrt(noise_absolute / y_noise.size()[-1])
     y_corrupted = y + y_noise
     y_corrupted /= torch.linalg.norm(y_corrupted, dim=1, keepdim=True)
     for i, ridge in enumerate(ridges):

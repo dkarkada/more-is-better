@@ -77,11 +77,16 @@ for i, n in enumerate(sizes):
         torch.cuda.empty_cache()
     print("\tdone.")
 
+noise = torch.normal(0, 1, size=y.size(), dtype=torch.float32).cuda()
+noise /= np.sqrt(noise.size()[-1])
+_, test_mse_noise = krr(K, noise, n_train=MAX_SIZE)
+
 eigstats = {
     "eigvals": eigvals,
     "sizes": sizes,
     "kappa_estimates": kappa_estimates,
     "true_kappas": true_kappas,
+    "test_mse_noise": test_mse_noise,
     "test_mses": test_mses,
     "train_mses": train_mses,
 }
