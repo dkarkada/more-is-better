@@ -11,6 +11,7 @@ class ImageData():
         'emnist': torchvision.datasets.EMNIST,
         'cifar10': torchvision.datasets.CIFAR10,
         'cifar100': torchvision.datasets.CIFAR100,
+        'svhn': torchvision.datasets.SVHN,
         'imagenet32': None,
         'imagenet64': None,
     }
@@ -33,6 +34,9 @@ class ImageData():
             if self.name in ['mnist', 'emnist']:
                 X, y = dataset.data.numpy(), dataset.targets.numpy()
                 X = X[:,:,:,None]
+            if self.name in ['svhn']:
+                X, y = dataset.data, dataset.labels
+                X = X.transpose(0, 2, 3, 1)
             if self.name in ['imagenet32', 'imagenet64']:
                 X, y = dataset['data'], dataset['labels']
                 y -= 1
@@ -66,6 +70,9 @@ class ImageData():
         if self.name in ['cifar10','cifar100', 'mnist', 'emnist']:
             raw_train = self.dataset_dict[self.name](root=f'{work_dir}/data', train=True, download=True)
             raw_test = self.dataset_dict[self.name](root=f'{work_dir}/data', train=False, download=True)
+        if self.name == 'svhn':
+            raw_train = self.dataset_dict[self.name](root=f'{work_dir}/data', split='train', download=True)
+            raw_test = self.dataset_dict[self.name](root=f'{work_dir}/data', split='test', download=True)            
         if self.name in ['imagenet32', 'imagenet64']:
             raw_train = np.load(f"{work_dir}/data/{self.name}-val.npz")
             raw_test = np.load(f"{work_dir}/data/{self.name}-val.npz")
