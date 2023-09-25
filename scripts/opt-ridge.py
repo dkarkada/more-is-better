@@ -47,9 +47,9 @@ assert dataset is not None
 _, y = dataset
 y = y[:N+N_TEST]
 # binarize
-class_1 = y[:, [0, 4, 6, 8, 9]].sum(axis=1)
-class_2 = y[:, [1, 2, 3, 5, 7]].sum(axis=1)
-y = np.stack([class_1, class_2]).T
+# class_1 = y[:, [0, 4, 6, 8, 9]].sum(axis=1)
+# class_2 = y[:, [1, 2, 3, 5, 7]].sum(axis=1)
+# y = np.stack([class_1, class_2]).T
 # load kernel
 K = load_kernel(N+N_TEST, work_dir)
 assert np.allclose(K, K.T), np.sum((K-K.T))**2

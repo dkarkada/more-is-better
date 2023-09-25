@@ -1,6 +1,6 @@
 import numpy as np
-import jax
-jax.config.update('jax_platform_name', 'cpu')
+# import jax
+# jax.config.update('jax_platform_name', 'cpu')
 
 import torch
 
@@ -27,7 +27,7 @@ N = int(args[4])
 
 N_SIZES = 80
 N_TRIALS = 10
-MAX_SIZE = 30000
+MAX_SIZE = 29000
 
 DATASET_NAME = DATASET_NAME.lower()
 assert DATASET_NAME in ['cifar10', 'cifar100', 'emnist',
@@ -51,7 +51,9 @@ assert K.shape[0] >= MAX_SIZE + 2000
 
 eigdata = load(f"{work_dir}/eigdata.file")
 assert eigdata is not None, "Must compute eigdata first"
-eigvals = eigdata[max(eigdata.keys())]["eigvals"]
+num_eigvals = max(eigdata.keys())
+eigvals = eigdata[num_eigvals]["eigvals"]
+assert MAX_SIZE < num_eigvals
 
 kappa_estimates = np.zeros(N_SIZES)
 true_kappas = np.zeros(N_SIZES)
@@ -63,7 +65,7 @@ y = torch.from_numpy(y).cuda()
 for i, n in enumerate(sizes):
     print(f"Starting size {n}... ", end='')
     K_sub = K[:n, :n]
-    kap_estim = 1 / torch.linalg.pinv(K_sub, hermitian=True).trace()
+    kap_estim = 1 / torch.linalg.pinv(K_sub, atol=1e-30, rtol=0, hermitian=True).trace()
     kappa_estimates[i] = kap_estim.cpu().numpy()
     true_kappas[i] = calc_kappa(n, eigvals)
     for trial in range(N_TRIALS):
