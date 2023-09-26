@@ -121,7 +121,7 @@ def rf_krr(features, y, n_train, k, ridges, RNG):
     idxs = RNG.choice(num_features, size=k, replace=False)
     K_rf = features[:, idxs] @ features[:, idxs].T
     K_rf *= num_features/k
-    train_mses, test_mses = np.zeros(2, len(ridges))
+    train_mses, test_mses = np.zeros((2, len(ridges)))
     for i, ridge in enumerate(ridges):
         train_mse, test_mse = krr(K_rf, y, n_train, ridge)
         train_mses[i] = train_mse
