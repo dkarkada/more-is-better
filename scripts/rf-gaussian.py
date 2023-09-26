@@ -32,7 +32,7 @@ if IMITATE:
 if not IMITATE:
     ALPHA = 1.2
     BETA = 1.4
-NOISE_VAR = 0.
+NOISE_VAR = 0
 M = 10000
 
 N_THRY_PTS = 60
@@ -53,6 +53,7 @@ assert os.path.exists(work_dir), work_dir
 
 def get_gaussian_dataset_closure(eigcoeffs, noise_var=0.):
     m = len(eigcoeffs)
+    noise_var = float(noise_var)
 
     def get_gaussian_dataset(n):
         X = torch.normal(0, 1, size=(n, m)).cuda()
@@ -146,7 +147,7 @@ print("done.")
 eigvals = torch.from_numpy(np.array(eigvals)).cuda()
 eigcoeffs = torch.from_numpy(np.array(eigcoeffs)).cuda()
 
-get_dataset = get_gaussian_dataset_closure(eigcoeffs)
+get_dataset = get_gaussian_dataset_closure(eigcoeffs, NOISE_VAR)
 get_gaussian_feature_map = get_gaussian_feature_map_closure(eigvals)
 
 def do_expt(expt):
