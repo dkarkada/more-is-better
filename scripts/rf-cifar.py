@@ -66,11 +66,10 @@ def get_dataset(n):
 
 def get_relu_feature_map():
     w = 10000 # width
-    # W = torch.from_numpy(np.sqrt(2/CIFAR_SZ) * RNG.standard_normal(size=(w, CIFAR_SZ))).cuda()
-    W = torch.sqrt(2/CIFAR_SZ) * torch.normal(0, 1, size=(w, CIFAR_SZ))
+    W = np.sqrt(2/CIFAR_SZ) * torch.normal(0, 1, size=(w, CIFAR_SZ)).cuda()
     def relu_feature_map(X):
         # factor sqrt(1/w) to ensure kernel is O(1)
-        WX = torch.sqrt(1/w) * (W @ X.T).T
+        WX = np.sqrt(1/w) * (W @ X.T).T
         return torchfun.relu_(WX)
     return relu_feature_map
 
@@ -104,7 +103,7 @@ def do_theory(theory):
                 mse, kappa, gamma = rf_krr_risk_theory(eigvals, eigcoeffs, n, k, ridge)
                 results = [mse, kappa, gamma]
                 theory.write(results, n=n, k=k, ridge=ridge)
-        print()
+    print()
     
 
 vary_dim = int_logspace(1, 4, base=10, num=N_THRY_PTS)
@@ -143,12 +142,12 @@ print("done.")
 def do_expt(expt):
     for trial in expt.get_axis("trial"):
         for n in expt.get_axis("n"):
-            print('.', end='')
             X, y = get_dataset(n+1000)
             feature_map = get_relu_feature_map()
             features = feature_map(X)
             assert features.shape[0] == n + 1000
             for k in expt.get_axis("k"):
+                print('.', end='')
                 ridges = expt.get_axis("ridge")
                 train_mses, test_mses = rf_krr(features, y, n, k, ridges, RNG)
                 result = [train_mses, test_mses]
