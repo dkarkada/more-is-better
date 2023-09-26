@@ -150,8 +150,8 @@ def do_expt(expt):
                 print('.', end='')
                 ridges = expt.get_axis("ridge")
                 train_mses, test_mses = rf_krr(features, y, n, k, ridges, RNG)
-                result = [train_mses, test_mses]
-                expt.write(result, n=n, k=k, trial=trial)
+                expt.write(train_mses, n=n, k=k, trial=trial, result="train_mse")
+                expt.write(test_mses, n=n, k=k, trial=trial, result="test_mse")
         print()
 
 
