@@ -74,6 +74,7 @@ def get_gaussian_feature_map_closure(eigvals):
 idxs = 1 + np.arange(M)
 eigvals = idxs ** -ALPHA
 eigcoeffs = np.sqrt(idxs ** -BETA)
+eigcoeffs /= np.linalg.norm(eigcoeffs)
 
 # put on CPU to speed up theory calculation
 cpus = jax.devices("cpu")
@@ -128,8 +129,8 @@ print("done.")
 ## EXPT CURVES
 
 # ensure eigcoeffs are torch tensor
-eigvals = torch.tensor(eigvals).cuda()
-eigcoeffs = torch.tensor(eigcoeffs).cuda()
+eigvals = torch.from_numpy(np.asarray(eigvals)).cuda()
+eigcoeffs = torch.from_numpy(np.asarray(eigcoeffs)).cuda()
 
 get_dataset = get_gaussian_dataset_closure(eigcoeffs)
 get_gaussian_feature_map = get_gaussian_feature_map_closure(eigvals)
