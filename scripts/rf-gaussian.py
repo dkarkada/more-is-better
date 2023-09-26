@@ -25,10 +25,14 @@ RNG = np.random.default_rng()
 
 # n_train up to 10000, k up to 10000
 
-ALPHA = 1.4
-BETA = 1.3
-NOISE_VAR = 0
 ID = "gaussian-imitation"
+IMITATE = True
+if IMITATE:
+    BINARIZATION = [[0, 1, 7, 8, 9], [2, 3, 4, 5, 6]]
+if not IMITATE:
+    ALPHA = 1.2
+    BETA = 1.4
+NOISE_VAR = 0
 M = 10000
 
 N_THRY_PTS = 60
@@ -51,8 +55,8 @@ def get_gaussian_dataset_closure(eigcoeffs, noise_var=0):
     m = len(eigcoeffs)
 
     def get_gaussian_dataset(n):
-        X = torch.normal(0, 1, size=(n, m))
-        y = X @ eigcoeffs + torch.normal(0, noise_var, size=n)
+        X = torch.normal(0, 1, size=(n, m)).cuda()
+        y = X @ eigcoeffs + torch.normal(0, noise_var, size=n).cuda()
         y = y[:, None]
         return X, y
 
@@ -71,10 +75,20 @@ def get_gaussian_feature_map_closure(eigvals):
     return get_gaussian_feature_map
 
 # gen eigvals and eigcoeffs
-idxs = 1 + np.arange(M)
-eigvals = idxs ** -ALPHA
-eigcoeffs = np.sqrt(idxs ** -BETA)
-eigcoeffs /= np.linalg.norm(eigcoeffs)
+if IMITATE:
+    eigdata = load(f"{work_dir}/eigdata.file")
+    assert eigdata is not None, "Must compute eigdata first"
+    num_eigvals = max(eigdata.keys())
+    eigvals = eigdata[num_eigvals]["eigvals"][:M]
+    eigcoeffs = eigdata[num_eigvals]["eigcoeffs"][:M]
+    eigcoeffs = eigcoeffs[:, BINARIZATION[0]].sum(axis=1) \
+                - eigcoeffs[:, BINARIZATION[1]].sum(axis=1)
+    eigcoeffs /= np.linalg.norm(eigcoeffs)
+else:
+    idxs = 1 + np.arange(M)
+    eigvals = idxs ** -ALPHA
+    eigcoeffs = np.sqrt(idxs ** -BETA)
+    eigcoeffs /= np.linalg.norm(eigcoeffs)
 
 # put on CPU to speed up theory calculation
 cpus = jax.devices("cpu")
