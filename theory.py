@@ -116,35 +116,17 @@ def rf_krr_jax(train_features, test_features, keep_inds, train_y, test_y, ridges
     return train_mses, test_mses
 
 
-def rf_krr(features, keep_inds, y, n_train, ridges):
-    scale = len(features.shape[-1])/len(keep_inds)
-    K_rf = features[:, keep_inds] @ features[:, keep_inds].T
-    K_rf *= scale
+def rf_krr(features, y, n_train, k, ridges, RNG):
+    num_features = features.shape[-1]
+    idxs = RNG.choice(num_features, size=k, replace=False)
+    K_rf = features[:, idxs] @ features[:, idxs].T
+    K_rf *= num_features/k
     train_mses, test_mses = np.zeros(2, len(ridges))
     for i, ridge in enumerate(ridges):
         train_mse, test_mse = krr(K_rf, y, n_train, ridge)
         train_mses[i] = train_mse
         test_mses[i] = test_mse
     return train_mses, test_mses
-    
-
-from functools import partial
-@partial(jit, static_argnames=('n_train'))
-def krr_jax(K, y, ridge, n_train):
-    y_train = y[:n_train]
-    y_test = y[n_train:]
-    K_train = K[:n_train, :n_train]
-    K_test = K[:, :n_train]
-
-    regularizer = ridge * jnp.eye(n_train)
-    y_hat = K_test @ jnp.linalg.inv(K_train + regularizer) @ y_train
-    # train error
-    y_hat_train = y_hat[:n_train]
-    train_mse = ((y_train - y_hat_train) ** 2).sum(axis=1).mean()
-    # test error
-    y_hat_test = y_hat[n_train:]
-    test_mse = ((y_test - y_hat_test) ** 2).sum(axis=1).mean()
-    return train_mse, test_mse
 
 
 def krr(K, y, n_train, ridge=0):

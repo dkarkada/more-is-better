@@ -28,7 +28,7 @@ N = int(args[4])
 
 N_TRIALS = 5
 N_RIDGES = 50
-N_TEST = 5000
+N_TEST = 8000
 
 DATASET_NAME = DATASET_NAME.lower()
 assert DATASET_NAME in ['cifar10', 'cifar100', 'svhn', 'emnist',

@@ -14,7 +14,7 @@ start_time = time.time()
 sys.path.insert(0, 'more-is-better')
 
 from utils import save, load, int_logspace
-from theory import rf_krr_risk_theory
+from theory import rf_krr_risk_theory, rf_krr
 from imagedata import ImageData
 from exptdetails import ExptDetails
 from ExperimentResults import ExperimentResults
@@ -25,9 +25,11 @@ RNG = np.random.default_rng()
 
 # n_train up to 10000, k up to 10000
 
-N_EXPT_PTS = 31
-N_TRIALS = 15
-N_RIDGES = 31
+N_THRY_PTS = 12 # 40
+N_EXPT_PTS = 11 # 31
+N_TRIALS = 1 # 15
+N_RIDGES = 3 # 31
+assert N_THRY_PTS >= 10
 
 DATASET_NAME = 'cifar10'
 CIFAR_SZ = 3072
@@ -49,6 +51,10 @@ if dataset is None:
     save(dataset, f"{work_dir}/dataset.file")
     print("done")
 X, y = dataset
+# binarize
+y = y[:, BINARIZATION[0]].sum(axis=1) - y[:, BINARIZATION[1]].sum(axis=1)
+y = y[:, None]
+assert y.ndim == 2
 X = torch.from_numpy(X).cuda()
 y = torch.from_numpy(y).cuda()
 N = len(X)
@@ -101,11 +107,11 @@ def do_theory(theory):
         print()
     
 
-vary_dim = int_logspace(1, 4, base=10, num=40)
-vary_dim_peak = int_logspace(2, 3, base=10, num=30)
+vary_dim = int_logspace(1, 4, base=10, num=N_THRY_PTS)
+vary_dim_peak = int_logspace(2, 3, base=10, num=(N_THRY_PTS-10))
 vary_dim = np.unique(np.concatenate((vary_dim, vary_dim_peak),0))
 fixed_dim = [256]
-ridges = np.logspace(-12, 12, base=2, num=N_RIDGES)
+ridges = np.logspace(-3, 2, base=10, num=N_RIDGES)
 
 # n = 256, varying k
 axes = [
@@ -115,7 +121,9 @@ axes = [
     ("result", ["test_mse", "kappa", "gamma"])
 ]
 theory_n256 = ExperimentResults(axes, f"{work_dir}/theory-n256.expt", meta)
+print("Starting theory n=256")
 do_theory(theory_n256)
+print("done.")
 
 # k = 256, varying n
 axes = [
@@ -125,10 +133,27 @@ axes = [
     ("result", ["test_mse", "kappa", "gamma"])
 ]
 theory_k256 = ExperimentResults(axes, f"{work_dir}/theory-k256.expt", meta)
+print("Starting theory k=256")
 do_theory(theory_k256)
+print("done.")
 
 
 ## EXPT CURVES
+
+def do_expt(expt):
+    for trial in expt.get_axis("trial"):
+        for n in expt.get_axis("n"):
+            print('.', end='')
+            X, y = get_dataset(n+1000)
+            feature_map = get_relu_feature_map()
+            features = feature_map(X)
+            assert features.shape[0] == n + 1000
+            for k in expt.get_axis("k"):
+                ridges = expt.get_axis("ridge")
+                train_mses, test_mses = rf_krr(features, y, n, k, ridges, RNG)
+                result = [train_mses, test_mses]
+                expt.write(result, n=n, k=k, trial=trial)
+        print()
 
 
 vary_dim = int_logspace(1, 4, base=10, num=N_EXPT_PTS)
@@ -137,44 +162,28 @@ trials = np.arange(N_TRIALS)
 # n = 256, varying k
 axes = [
     ("trial", trials),
-    ("n", n_trains),
-    ("k", kk),
+    ("n", fixed_dim),
+    ("k", vary_dim),
     ("ridge", ridges),
     ("result", ["train_mse", "test_mse"])
 ]
+expt = ExperimentResults(axes, f"{work_dir}/expt-n256.expt")
+print("Starting expt n=256")
+do_expt(expt)
+print("done.")
 
-expt = ExperimentResults(axes, f"{expt_dir}/expt-{expt_name}.expt")
-run_rf_expt(expt, get_dataset, get_relu_feature_map, RNG)
-# expt = ExperimentResults.load(f"{expt_dir}/expt-{expt_name}.file")
-def run_rf_expt(expt, get_dataset, get_feature_map, rng):
-    trials = expt.get_axis("trial")
-    n_trains = expt.get_axis("n")
-    kk = expt.get_axis("k")
-    ridges = expt.get_axis("ridge")
-
-    for n in n_trains:
-        if expt.is_written(n=n):
-            continue
-        for trial in trials:
-            print('.', end='')
-            if expt.is_written(trial=trial, n=n):
-                print(f"skipping trial {trial}, n {n}")
-                continue
-            train_X, train_y, test_X, test_y = get_dataset(n)
-            assert train_y.ndim == 2 and test_y.ndim == 2
-            feature_map = get_feature_map()
-            train_features = feature_map(train_X)
-            test_features = feature_map(test_X)
-            assert train_features.shape[0] == n
-
-            for k in kk:
-                num_features = train_features.shape[-1]
-                keep_inds = rng.choice(num_features, size=k, replace=False)
-                train_mses, test_mses = rf_krr(train_features, test_features, keep_inds,
-                                               train_y, test_y, ridges)
-                result = onp.array([train_mses, test_mses]).T
-                expt.write(result, n=n, k=k, trial=trial)
-        print()
+# k = 256, varying n
+axes = [
+    ("trial", trials),
+    ("n", vary_dim),
+    ("k", fixed_dim),
+    ("ridge", ridges),
+    ("result", ["train_mse", "test_mse"])
+]
+expt = ExperimentResults(axes, f"{work_dir}/expt-k256.expt")
+print("Starting expt k=256")
+do_expt(expt)
+print("done.")
 
 torch.cuda.empty_cache()
 print(f"all done. hours elapsed: {(time.time()-start_time)/3600:.2f}")
