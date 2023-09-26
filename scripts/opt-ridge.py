@@ -26,9 +26,9 @@ EXPT_NUM = int(args[2])
 DEPTH = int(args[3])
 N = int(args[4])
 
-N_TRIALS = 15
+N_TRIALS = 5
 N_RIDGES = 50
-N_TEST = 10000
+N_TEST = 5000
 
 DATASET_NAME = DATASET_NAME.lower()
 assert DATASET_NAME in ['cifar10', 'cifar100', 'svhn', 'emnist',
@@ -48,10 +48,6 @@ dataset = load(f"{work_dir}/dataset.file")
 assert dataset is not None
 _, y = dataset
 y = y[:N+N_TEST]
-# binarize
-# class_1 = y[:, [0, 4, 6, 8, 9]].sum(axis=1)
-# class_2 = y[:, [1, 2, 3, 5, 7]].sum(axis=1)
-# y = np.stack([class_1, class_2]).T
 # load kernel
 K = load_kernel(N+N_TEST, work_dir)
 assert np.allclose(K, K.T), np.sum((K-K.T))**2
@@ -63,8 +59,8 @@ print('done')
 # these eigvals aren't normalized; lambda ~ ridge here (c.f. theory, lambda~ridge/N)
 eigvals = torch.linalg.eigvalsh(K[:N, :N]).cpu().numpy()
 
-log_max_ridge = int(np.log10(eigvals.max())) + 3
-log_min_ridge = int(np.log10(eigvals.min())) - 3
+log_max_ridge = round(np.log10(eigvals.max())) + 2
+log_min_ridge = round(np.log10(eigvals.max()/(N**1.5))) - 1
 print(f"max eigval {eigvals.max():.1e}, min eigval {eigvals.min():.1e}")
 print(f"ridge ranging from 10^{log_min_ridge} to 10^{log_max_ridge}")
 ridges = np.logspace(log_min_ridge, log_max_ridge, base=10, num=N_RIDGES)
@@ -84,14 +80,14 @@ expt = ExperimentResults(axes, f"{work_dir}/optridge.expt", meta)
 
 for trial in expt.get_axis('trial'):
     print(f"trial {trial}: ", end='')
-    idxs = torch.randperm(K.size()[0])
+    idxs = torch.randperm(K.size()[0]).cuda()
     K = K[idxs[:, None], idxs[None, :]]
     y = y[idxs]
     for noise_relative in expt.get_axis('noise'):
         print('.', end='')
         noise_absolute = noise_relative * base_mse
         y_noise = torch.normal(0, 1, size=y.size(), dtype=torch.float32).cuda()
-        y_noise *= torch.sqrt(noise_absolute / y_noise.size()[-1])
+        y_noise *= np.sqrt(noise_absolute / y_noise.size()[-1])
         y_corrupted = y + y_noise
         y_corrupted /= torch.linalg.norm(y_corrupted, dim=1, keepdim=True)
         for ridge in expt.get_axis('ridge'):
@@ -99,7 +95,7 @@ for trial in expt.get_axis('trial'):
             result = [train_mse, test_mse]
             expt.write(result, trial=trial, noise=noise_relative, ridge=ridge)
             torch.cuda.empty_cache()
-        print()
+    print()
 
 del K, y
 torch.cuda.empty_cache()
