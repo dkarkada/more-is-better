@@ -34,7 +34,7 @@ def krr_risk_theory(n, eigcoeffs, eigvals, ridge=0, noise_var=0):
       
       
 @jit
-def rf_krr_risk_theory(eigvals, eigcoeffs, n, k, ridge, noise_var=0):
+def rf_krr_risk_theory(eigvals, eigcoeffs, n, k, ridge, noise_var=0.):
     """
     eigvals (jax array @ CPU): eigenvalues
     eigcoeffs (jax array @ CPU): eigenbasis coefficients of target function

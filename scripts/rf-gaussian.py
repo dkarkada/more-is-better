@@ -13,9 +13,10 @@ start_time = time.time()
 
 sys.path.insert(0, 'more-is-better')
 
-from utils import save, load
-from theory import rf_krr_risk_theory
+from utils import save, load, int_logspace
+from theory import rf_krr_risk_theory, rf_krr
 from imagedata import ImageData
+from exptdetails import ExptDetails
 from ExperimentResults import ExperimentResults
 
 args = sys.argv
@@ -24,17 +25,29 @@ RNG = np.random.default_rng()
 
 # n_train up to 10000, k up to 10000
 
-N_SIZES = 31
-N_TRIALS = 15
-N_RIDGES = 31
+ALPHA = 1.4
+BETA = 1.1
+NOISE_VAR = 0
+ID = "gaussian-imitation"
+M = 10000
+
+N_THRY_PTS = 60
+N_EXPT_PTS = 11 # 31
+N_TRIALS = 1 # 45
+N_RIDGES = 3 # 31
+assert N_THRY_PTS >= 10
+
+DATASET_NAME = 'cifar10'
 
 print(f"RF expt: gaussian")
 
+expt_details = ExptDetails(1, 1, DATASET_NAME)
+expt_name = expt_details.expt_name
 kernel_dir = "/scratch/bbjr/dkarkada/kernel-matrices"
-work_dir = f"{kernel_dir}/cifar10/fc1-nngpk"
+work_dir = f"{kernel_dir}/{DATASET_NAME}/{expt_name}"
 assert os.path.exists(work_dir), work_dir
 
-def get_gaussian_dataset_closure(eigcoeffs, noise_var):
+def get_gaussian_dataset_closure(eigcoeffs, noise_var=0):
     m = len(eigcoeffs)
 
     def get_gaussian_dataset(n):
@@ -57,110 +70,114 @@ def get_gaussian_feature_map_closure(eigvals):
 
     return get_gaussian_feature_map
 
-# ensure eigcoeffs are torch tensor
 # gen eigvals and eigcoeffs
-
-
-#continue from here
+idxs = 1 + np.arange(M)
+eigvals = idxs ** -ALPHA
+eigcoeffs = np.sqrt(idxs ** -BETA)
 
 # put on CPU to speed up theory calculation
 cpus = jax.devices("cpu")
 eigvals = jax.device_put(eigvals, cpus[0])
 eigcoeffs = jax.device_put(eigcoeffs, cpus[0])
 
-get_dataset = get_cifar10_dataset_closure()
+## THEORY CURVES
 
-
-
-kk = int_logspace(1, 4, base=10, num=40)
-kk_peak = int_logspace(2, 3, base=10, num=30)
-kk = onp.unique(onp.concatenate((kk, kk_peak),0))
-n_trains = [256]
-ridges = onp.logspace(-12, 12, base=2, num=25)
-
-theory_axes = [
-    ("n", n_trains),
-    ("k", kk),
-    ("ridge", ridges),
-    ("result", ["kappa", "gamma", "test_mse"])
-]
-theory = ExperimentResults(theory_axes, f"{expt_dir}/theory-{expt_name}.file", meta)
-run_rf_theory(theory, eigvals, eigcoeffs, noise_var=0) # 4m, 20 jun
-def run_rf_theory(theory, eigvals, eigcoeffs, noise_var):
-    n_trains = theory.get_axis("n")
-    kk = theory.get_axis("k")
-    ridges = theory.get_axis("ridge")
-
-    for n in n_trains:
-        for k in kk:
+def do_theory(theory):
+    for n in theory.get_axis("n"):
+        for k in theory.get_axis("k"):
             print('.', end='')
-            for ridge in ridges:
-                mse, kappa, gamma = rf_krr_risk_theory(eigvals, eigcoeffs, n, k, ridge, noise_var)
-                theory.write(kappa, n=n, k=k, ridge=ridge, result="kappa", save_after=False)
-                theory.write(gamma, n=n, k=k, ridge=ridge, result="gamma", save_after=False)
-                theory.write(mse, n=n, k=k, ridge=ridge, result="test_mse", save_after=False)
-        theory.save()
+            for ridge in theory.get_axis("ridge"):
+                mse, kappa, gamma = rf_krr_risk_theory(eigvals, eigcoeffs, n,
+                                                       k, ridge, NOISE_VAR)
+                results = [mse, kappa, gamma]
+                theory.write(results, n=n, k=k, ridge=ridge)
+    print()
+    
+
+vary_dim = int_logspace(1, 4, base=10, num=N_THRY_PTS)
+vary_dim_peak = int_logspace(2, 3, base=10, num=(N_THRY_PTS-10))
+vary_dim = np.unique(np.concatenate((vary_dim, vary_dim_peak),0))
+fixed_dim = [256]
+ridges = np.logspace(-3, 2, base=10, num=N_RIDGES)
+
+# n = 256, varying k
+axes = [
+    ("n", fixed_dim),
+    ("k", vary_dim),
+    ("ridge", ridges),
+    ("result", ["test_mse", "kappa", "gamma"])
+]
+theory_n256 = ExperimentResults(axes, f"{work_dir}/theory-{ID}-n256.expt")
+print("Starting theory n=256")
+do_theory(theory_n256)
+print("done.")
+
+# k = 256, varying n
+axes = [
+    ("n", vary_dim),
+    ("k", fixed_dim),
+    ("ridge", ridges),
+    ("result", ["test_mse", "kappa", "gamma"])
+]
+theory_k256 = ExperimentResults(axes, f"{work_dir}/theory-{ID}-k256.expt")
+print("Starting theory k=256")
+do_theory(theory_k256)
+print("done.")
+
+
+## EXPT CURVES
+
+# ensure eigcoeffs are torch tensor
+eigvals = torch.tensor(eigvals).cuda()
+eigcoeffs = torch.tensor(eigcoeffs).cuda()
+
+get_dataset = get_gaussian_dataset_closure(eigcoeffs)
+get_gaussian_feature_map = get_gaussian_feature_map_closure(eigvals)
+
+def do_expt(expt):
+    for trial in expt.get_axis("trial"):
+        for n in expt.get_axis("n"):
+            X, y = get_dataset(n+1000)
+            feature_map = get_gaussian_feature_map()
+            features = feature_map(X)
+            assert features.shape[0] == n + 1000
+            for k in expt.get_axis("k"):
+                print('.', end='')
+                ridges = expt.get_axis("ridge")
+                train_mses, test_mses = rf_krr(features, y, n, k, ridges, RNG)
+                expt.write(train_mses, n=n, k=k, trial=trial, result="train_mse")
+                expt.write(test_mses, n=n, k=k, trial=trial, result="test_mse")
         print()
 
 
+vary_dim = int_logspace(1, 4, base=10, num=N_EXPT_PTS)
+trials = np.arange(N_TRIALS)
 
-
-kk = int_logspace(1, 4, base=10, num=31)
-n_trains = [256]
-ridges = onp.logspace(-12, 12, base=2, num=25)
-trials = onp.arange(25)
-
+# n = 256, varying k
 axes = [
     ("trial", trials),
-    ("n", n_trains),
-    ("k", kk),
+    ("n", fixed_dim),
+    ("k", vary_dim),
     ("ridge", ridges),
     ("result", ["train_mse", "test_mse"])
 ]
+expt = ExperimentResults(axes, f"{work_dir}/expt-{ID}-n256.expt")
+print("Starting expt n=256")
+do_expt(expt)
+print("done.")
 
-expt = ExperimentResults(axes, f"{expt_dir}/expt-{expt_name}.file")
-run_rf_expt(expt, get_dataset, get_relu_feature_map, RNG)
-# expt = ExperimentResults.load(f"{expt_dir}/expt-{expt_name}.file")
-def run_rf_expt(expt, get_dataset, get_feature_map, rng):
-    trials = expt.get_axis("trial")
-    n_trains = expt.get_axis("n")
-    kk = expt.get_axis("k")
-    ridges = expt.get_axis("ridge")
+# k = 256, varying n
+axes = [
+    ("trial", trials),
+    ("n", vary_dim),
+    ("k", fixed_dim),
+    ("ridge", ridges),
+    ("result", ["train_mse", "test_mse"])
+]
+expt = ExperimentResults(axes, f"{work_dir}/expt-{ID}-k256.expt")
+print("Starting expt k=256")
+do_expt(expt)
+print("done.")
 
-    for n in n_trains:
-        if expt.is_written(n=n):
-            continue
-        for trial in trials:
-            print('.', end='')
-            if expt.is_written(trial=trial, n=n):
-                print(f"skipping trial {trial}, n {n}")
-                continue
-            train_X, train_y, test_X, test_y = get_dataset(n)
-            assert train_y.ndim == 2 and test_y.ndim == 2
-            feature_map = get_feature_map()
-            train_features = feature_map(train_X)
-            test_features = feature_map(test_X)
-            assert train_features.shape[0] == n
-
-            for k in kk:
-                num_features = train_features.shape[-1]
-                keep_inds = rng.choice(num_features, size=k, replace=False)
-                train_mses, test_mses = rf_krr(train_features, test_features, keep_inds,
-                                               train_y, test_y, ridges)
-                result = onp.array([train_mses, test_mses]).T
-                expt.write(result, n=n, k=k, trial=trial)
-        print()
-
-
-
-results = {
-    "ridges": ridges,
-    "noises": noises,
-    "test_mses": test_mses,
-    "train_mses": train_mses,
-}
-save(results, f"{work_dir}/optridge.file")
-
-del K, y
 torch.cuda.empty_cache()
 print(f"all done. hours elapsed: {(time.time()-start_time)/3600:.2f}")

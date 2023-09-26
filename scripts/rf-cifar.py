@@ -25,10 +25,10 @@ RNG = np.random.default_rng()
 
 # n_train up to 10000, k up to 10000
 
-N_THRY_PTS = 12 # 40
-N_EXPT_PTS = 11 # 31
-N_TRIALS = 1 # 15
-N_RIDGES = 3 # 31
+N_THRY_PTS = 60
+N_EXPT_PTS = 31
+N_TRIALS = 45
+N_RIDGES = 31
 assert N_THRY_PTS >= 10
 
 DATASET_NAME = 'cifar10'
@@ -72,8 +72,6 @@ def get_relu_feature_map():
         WX = np.sqrt(1/w) * (W @ X.T).T
         return torchfun.relu_(WX)
     return relu_feature_map
-
-# ensure eigcoeffs are torch tensor
 
 meta = {
     "binarization": BINARIZATION,
