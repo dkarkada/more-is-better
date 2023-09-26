@@ -57,8 +57,7 @@ def get_gaussian_dataset_closure(eigcoeffs, noise_var=0.):
 
     def get_gaussian_dataset(n):
         X = torch.normal(0, 1, size=(n, m)).cuda()
-        y = X @ eigcoeffs + torch.normal(0, noise_var, size=n).cuda()
-        y = y[:, None]
+        y = X @ eigcoeffs + torch.normal(0, noise_var, size=(n, 1)).cuda()
         return X, y
 
     return get_gaussian_dataset
