@@ -72,14 +72,14 @@ for i, n in enumerate(sizes):
     for trial in range(N_TRIALS):
         idxs = RNG.choice(N, size=(n+N_TEST), replace=False)
         K_sub, y_sub = K[idxs[:, None], idxs[None, :]], y[idxs]
-        train_mse, test_mse = krr(K_sub, y_sub, n_train=n, ridge=0)
+        train_mse, test_mse = krr(K_sub, y_sub, n_train=n, ridge=1e-10)
         test_mses[trial, i] = test_mse
         train_mses[trial, i] = train_mse
         torch.cuda.empty_cache()
     print("\tdone.")
 
 noise = torch.normal(0, 1, size=(N, 1), dtype=torch.float32).cuda()
-_, test_mse_noise = krr(K, noise, n_train=MAX_SIZE)
+_, test_mse_noise = krr(K, noise, n_train=MAX_SIZE, ridge=1e-10)
 
 eigstats = {
     "eigvals": eigvals,

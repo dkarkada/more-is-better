@@ -25,7 +25,7 @@ RNG = np.random.default_rng()
 
 # n_train up to 10000, k up to 10000
 
-N_SIZES = 31
+N_EXPT_PTS = 31
 N_TRIALS = 15
 N_RIDGES = 31
 
@@ -83,46 +83,58 @@ eigcoeffs = eigcoeffs[:, BINARIZATION[0]].sum(axis=1) \
              - eigcoeffs[:, BINARIZATION[1]].sum(axis=1)
 eigcoeffs /= np.linalg.norm(eigcoeffs)
 
-#continue from here
-
 # put on CPU to speed up theory calculation
 cpus = jax.devices("cpu")
 eigvals = jax.device_put(eigvals, cpus[0])
 eigcoeffs = jax.device_put(eigcoeffs, cpus[0])
 
+## THEORY CURVES
 
+def do_theory(theory):
+    for n in theory.get_axis("n"):
+        for k in theory.get_axis("k"):
+            print('.', end='')
+            for ridge in theory.get_axis("ridge"):
+                mse, kappa, gamma = rf_krr_risk_theory(eigvals, eigcoeffs, n, k, ridge)
+                results = [mse, kappa, gamma]
+                theory.write(results, n=n, k=k, ridge=ridge)
+        print()
+    
 
 vary_dim = int_logspace(1, 4, base=10, num=40)
 vary_dim_peak = int_logspace(2, 3, base=10, num=30)
 vary_dim = np.unique(np.concatenate((vary_dim, vary_dim_peak),0))
 fixed_dim = [256]
-ridges = np.logspace(-12, 12, base=2, num=25)
+ridges = np.logspace(-12, 12, base=2, num=N_RIDGES)
 
-theory_n256_axes = [
-    ("n", n_trains),
-    ("k", kk),
+# n = 256, varying k
+axes = [
+    ("n", fixed_dim),
+    ("k", vary_dim),
     ("ridge", ridges),
     ("result", ["test_mse", "kappa", "gamma"])
 ]
-theory_n256 = ExperimentResults(theory_n256_axes, f"{work_dir}/theory-n256.file", meta)
+theory_n256 = ExperimentResults(axes, f"{work_dir}/theory-n256.file", meta)
+do_theory(theory_n256)
 
-for n in n_trains:
-    for k in kk:
-        print('.', end='')
-        for ridge in ridges:
-            mse, kappa, gamma = rf_krr_risk_theory(eigvals, eigcoeffs, n, k, ridge, noise_var=0)
-            results = [mse, kappa, gamma]
-            theory_n256.write(results, n=n, k=k, ridge=ridge)
-    print()
+# k = 256, varying n
+axes = [
+    ("n", vary_dim),
+    ("k", fixed_dim),
+    ("ridge", ridges),
+    ("result", ["test_mse", "kappa", "gamma"])
+]
+theory_k256 = ExperimentResults(axes, f"{work_dir}/theory-k256.file", meta)
+do_theory(theory_k256)
 
 
+## EXPT CURVES
 
 
-kk = int_logspace(1, 4, base=10, num=31)
-n_trains = [256]
-ridges = onp.logspace(-12, 12, base=2, num=25)
-trials = onp.arange(25)
+vary_dim = int_logspace(1, 4, base=10, num=N_EXPT_PTS)
+trials = np.arange(N_TRIALS)
 
+# n = 256, varying k
 axes = [
     ("trial", trials),
     ("n", n_trains),
@@ -164,16 +176,5 @@ def run_rf_expt(expt, get_dataset, get_feature_map, rng):
                 expt.write(result, n=n, k=k, trial=trial)
         print()
 
-
-
-results = {
-    "ridges": ridges,
-    "noises": noises,
-    "test_mses": test_mses,
-    "train_mses": train_mses,
-}
-save(results, f"{work_dir}/optridge.file")
-
-del K, y
 torch.cuda.empty_cache()
 print(f"all done. hours elapsed: {(time.time()-start_time)/3600:.2f}")

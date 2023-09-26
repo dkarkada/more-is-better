@@ -152,11 +152,11 @@ def krr(K, y, n_train, ridge=0):
     y_train, y_test = y[:n_train], y[n_train:]
     
     if ridge == 0:
-        alpha = torch.linalg.lstsq(K_train, y_train).solution
+        alpha = torch.linalg.lstsq(K_train, y_train)
     else:
         eye = torch.eye(n_train, dtype=torch.float32).cuda()
-        alpha = torch.linalg.lstsq(K_train + ridge*eye, y_train).solution
-    y_hat = K_test @ alpha
+        alpha = torch.linalg.lstsq(K_train + ridge*eye, y_train)
+    y_hat = K_test @ alpha.solution
     # train error
     y_hat_train = y_hat[:n_train]
     train_mse = ((y_train - y_hat_train) ** 2).sum(axis=1).mean()

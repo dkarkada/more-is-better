@@ -69,7 +69,7 @@ ridges = np.logspace(log_min_ridge, log_max_ridge, base=10, num=N_RIDGES)
 noise_rels = np.array([0, 1, 5, 50])  # relative noise level
 
 # do ridgeless noiseless KR
-_, base_mse = krr(K, y, n_train=N, ridge=0)
+_, base_mse = krr(K, y, n_train=N, ridge=1e-10)
 
 test_mses = {noise: np.zeros(N_RIDGES) for noise in noise_rels}
 train_mses = {noise: np.zeros(N_RIDGES) for noise in noise_rels}
