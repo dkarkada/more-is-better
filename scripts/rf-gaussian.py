@@ -26,7 +26,7 @@ RNG = np.random.default_rng()
 # n_train up to 10000, k up to 10000
 
 ALPHA = 1.4
-BETA = 1.1
+BETA = 1.3
 NOISE_VAR = 0
 ID = "gaussian-imitation"
 M = 10000
@@ -129,8 +129,8 @@ print("done.")
 ## EXPT CURVES
 
 # ensure eigcoeffs are torch tensor
-eigvals = torch.from_numpy(np.asarray(eigvals)).cuda()
-eigcoeffs = torch.from_numpy(np.asarray(eigcoeffs)).cuda()
+eigvals = torch.from_numpy(np.array(eigvals)).cuda()
+eigcoeffs = torch.from_numpy(np.array(eigcoeffs)).cuda()
 
 get_dataset = get_gaussian_dataset_closure(eigcoeffs)
 get_gaussian_feature_map = get_gaussian_feature_map_closure(eigvals)
