@@ -15,6 +15,7 @@ sys.path.insert(0, 'more-is-better')
 from utils import save, load, load_kernel
 from theory import krr
 from exptdetails import ExptDetails
+from ExperimentResults import ExperimentResults
 
 args = sys.argv
 
@@ -25,6 +26,7 @@ EXPT_NUM = int(args[2])
 DEPTH = int(args[3])
 N = int(args[4])
 
+N_TRIALS = 15
 N_RIDGES = 50
 N_TEST = 10000
 
@@ -71,30 +73,33 @@ noise_rels = np.array([0, 1, 5, 50])  # relative noise level
 # do ridgeless noiseless KR
 _, base_mse = krr(K, y, n_train=N, ridge=1e-10)
 
-test_mses = {noise: np.zeros(N_RIDGES) for noise in noise_rels}
-train_mses = {noise: np.zeros(N_RIDGES) for noise in noise_rels}
-for noise_relative in noise_rels:
-    print(f"relative noise {noise_relative}: ", end='')
-    noise_absolute = noise_relative * base_mse
-    y_noise = torch.normal(0, 1, size=y.size(), dtype=torch.float32).cuda()
-    y_noise *= torch.sqrt(noise_absolute / y_noise.size()[-1])
-    y_corrupted = y + y_noise
-    y_corrupted /= torch.linalg.norm(y_corrupted, dim=1, keepdim=True)
-    for i, ridge in enumerate(ridges):
-        print('.', end='')
-        train_mse, test_mse = krr(K, y_corrupted, n_train=N, ridge=ridge)        
-        test_mses[noise_relative][i] = test_mse
-        train_mses[noise_relative][i] = train_mse
-        torch.cuda.empty_cache()
-    print()
+meta = {"base_mse": base_mse}
+axes = [
+    ("trial", np.arange(N_TRIALS)),
+    ("noise", noise_rels),
+    ("ridge", ridges),
+    ("result", ["train_mse", "test_mse"])
+]
+expt = ExperimentResults(axes, f"{work_dir}/optridge.expt", meta)
 
-results = {
-    "ridges": ridges,
-    "noise_rels": noise_rels,
-    "test_mses": test_mses,
-    "train_mses": train_mses,
-}
-save(results, f"{work_dir}/optridge.file")
+for trial in expt.get_axis('trial'):
+    print(f"trial {trial}: ", end='')
+    idxs = torch.randperm(K.size()[0])
+    K = K[idxs[:, None], idxs[None, :]]
+    y = y[idxs]
+    for noise_relative in expt.get_axis('noise'):
+        print('.', end='')
+        noise_absolute = noise_relative * base_mse
+        y_noise = torch.normal(0, 1, size=y.size(), dtype=torch.float32).cuda()
+        y_noise *= torch.sqrt(noise_absolute / y_noise.size()[-1])
+        y_corrupted = y + y_noise
+        y_corrupted /= torch.linalg.norm(y_corrupted, dim=1, keepdim=True)
+        for ridge in expt.get_axis('ridge'):
+            train_mse, test_mse = krr(K, y_corrupted, n_train=N, ridge=ridge)
+            result = [train_mse, test_mse]
+            expt.write(result, trial=trial, noise=noise_relative, ridge=ridge)
+            torch.cuda.empty_cache()
+        print()
 
 del K, y
 torch.cuda.empty_cache()

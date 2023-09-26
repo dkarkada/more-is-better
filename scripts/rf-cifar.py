@@ -114,7 +114,7 @@ axes = [
     ("ridge", ridges),
     ("result", ["test_mse", "kappa", "gamma"])
 ]
-theory_n256 = ExperimentResults(axes, f"{work_dir}/theory-n256.file", meta)
+theory_n256 = ExperimentResults(axes, f"{work_dir}/theory-n256.expt", meta)
 do_theory(theory_n256)
 
 # k = 256, varying n
@@ -124,7 +124,7 @@ axes = [
     ("ridge", ridges),
     ("result", ["test_mse", "kappa", "gamma"])
 ]
-theory_k256 = ExperimentResults(axes, f"{work_dir}/theory-k256.file", meta)
+theory_k256 = ExperimentResults(axes, f"{work_dir}/theory-k256.expt", meta)
 do_theory(theory_k256)
 
 
@@ -143,7 +143,7 @@ axes = [
     ("result", ["train_mse", "test_mse"])
 ]
 
-expt = ExperimentResults(axes, f"{expt_dir}/expt-{expt_name}.file")
+expt = ExperimentResults(axes, f"{expt_dir}/expt-{expt_name}.expt")
 run_rf_expt(expt, get_dataset, get_relu_feature_map, RNG)
 # expt = ExperimentResults.load(f"{expt_dir}/expt-{expt_name}.file")
 def run_rf_expt(expt, get_dataset, get_feature_map, rng):
