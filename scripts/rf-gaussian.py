@@ -51,9 +51,8 @@ kernel_dir = "/scratch/bbjr/dkarkada/kernel-matrices"
 work_dir = f"{kernel_dir}/{DATASET_NAME}/{expt_name}"
 assert os.path.exists(work_dir), work_dir
 
-def get_gaussian_dataset_closure(eigcoeffs, noise_var=0.):
+def get_gaussian_dataset_closure(eigcoeffs, noise_var=0):
     m = len(eigcoeffs)
-    noise_var = float(noise_var)
 
     def get_gaussian_dataset(n):
         X = torch.normal(0, 1, size=(n, m)).cuda()
@@ -66,7 +65,7 @@ def get_gaussian_feature_map_closure(eigvals):
     in_dim = len(eigvals)
 
     def get_gaussian_feature_map():
-        proj = torch.normal(0, 1, size=(in_dim, in_dim)) / torch.sqrt(in_dim)
+        proj = torch.normal(0, 1, size=(in_dim, in_dim)) / np.sqrt(in_dim)
         F = torch.einsum('ij,j->ij', proj, torch.sqrt(eigvals))
         def gaussian_feature_map(X):
             return (F @ X.T).T
