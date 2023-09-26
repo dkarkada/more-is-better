@@ -32,7 +32,7 @@ if IMITATE:
 if not IMITATE:
     ALPHA = 1.2
     BETA = 1.4
-NOISE_VAR = 0
+NOISE_VAR = 0.
 M = 10000
 
 N_THRY_PTS = 60
@@ -51,7 +51,7 @@ kernel_dir = "/scratch/bbjr/dkarkada/kernel-matrices"
 work_dir = f"{kernel_dir}/{DATASET_NAME}/{expt_name}"
 assert os.path.exists(work_dir), work_dir
 
-def get_gaussian_dataset_closure(eigcoeffs, noise_var=0):
+def get_gaussian_dataset_closure(eigcoeffs, noise_var=0.):
     m = len(eigcoeffs)
 
     def get_gaussian_dataset(n):
