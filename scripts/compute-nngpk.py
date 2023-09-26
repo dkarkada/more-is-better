@@ -17,14 +17,16 @@ from utils import save, load
 args = sys.argv
 
 DATASET_NAME = str(args[1])
-EXPT_NUM = int(args[2])
-NUM_TILES = int(args[4])
+NUM_TILES = int(args[2])
+EXPT_NUM = 1
+DEPTH = 1
 
 DATASET_NAME = DATASET_NAME.lower()
 assert DATASET_NAME in ['cifar10', 'cifar100', 'svhn', 'emnist',
                         'mnist', 'imagenet32', 'imagenet64']
 
-expt_name = "fc1-nngpk"
+expt_details = ExptDetails(EXPT_NUM, DEPTH, DATASET_NAME)
+expt_name = expt_details.expt_name
 print(f"Computing {NUM_TILES}-tile {expt_name} @ {DATASET_NAME}")
 
 kernel_dir = "/scratch/bbjr/dkarkada/kernel-matrices"
@@ -33,7 +35,7 @@ if not os.path.exists(work_dir):
     print(f"Making directory {work_dir}")
     os.makedirs(work_dir)
 with open(f"{work_dir}/readme.txt", 'w') as f:
-    f.write("ReLU feature kernel (=1HL ReLU NNGPK) @ CIFAR10")
+    f.write(expt_details.msg)
 
 dataset = load(f"{work_dir}/dataset.file")
 if dataset is None:

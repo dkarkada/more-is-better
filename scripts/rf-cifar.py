@@ -13,9 +13,10 @@ start_time = time.time()
 
 sys.path.insert(0, 'more-is-better')
 
-from utils import save, load
+from utils import save, load, int_logspace
 from theory import rf_krr_risk_theory
 from imagedata import ImageData
+from exptdetails import ExptDetails
 from ExperimentResults import ExperimentResults
 
 args = sys.argv
@@ -34,8 +35,10 @@ BINARIZATION = [[0, 1, 7, 8, 9], [2, 3, 4, 5, 6]]
 
 print(f"RF expt: cifar10")
 
+expt_details = ExptDetails(1, 1, DATASET_NAME)
+expt_name = expt_details.expt_name
 kernel_dir = "/scratch/bbjr/dkarkada/kernel-matrices"
-work_dir = f"{kernel_dir}/{DATASET_NAME}/fc1-nngpk"
+work_dir = f"{kernel_dir}/{DATASET_NAME}/{expt_name}"
 assert os.path.exists(work_dir), work_dir
 
 dataset = load(f"{work_dir}/dataset.file")
@@ -48,10 +51,10 @@ if dataset is None:
 X, y = dataset
 X = torch.from_numpy(X).cuda()
 y = torch.from_numpy(y).cuda()
+N = len(X)
 
 
-
-def get_cifar10_dataset(n):
+def get_dataset(n):
     idxs = RNG.choice(N, size=n, replace=False)
     return X[idxs], y[idxs]
 
@@ -67,7 +70,7 @@ def get_relu_feature_map():
 
 # ensure eigcoeffs are torch tensor
 
-results = {
+meta = {
     "binarization": BINARIZATION,
 }
 
@@ -87,39 +90,30 @@ cpus = jax.devices("cpu")
 eigvals = jax.device_put(eigvals, cpus[0])
 eigcoeffs = jax.device_put(eigcoeffs, cpus[0])
 
-get_dataset = get_cifar10_dataset_closure()
 
 
+vary_dim = int_logspace(1, 4, base=10, num=40)
+vary_dim_peak = int_logspace(2, 3, base=10, num=30)
+vary_dim = np.unique(np.concatenate((vary_dim, vary_dim_peak),0))
+fixed_dim = [256]
+ridges = np.logspace(-12, 12, base=2, num=25)
 
-kk = int_logspace(1, 4, base=10, num=40)
-kk_peak = int_logspace(2, 3, base=10, num=30)
-kk = onp.unique(onp.concatenate((kk, kk_peak),0))
-n_trains = [256]
-ridges = onp.logspace(-12, 12, base=2, num=25)
-
-theory_axes = [
+theory_n256_axes = [
     ("n", n_trains),
     ("k", kk),
     ("ridge", ridges),
-    ("result", ["kappa", "gamma", "test_mse"])
+    ("result", ["test_mse", "kappa", "gamma"])
 ]
-theory = ExperimentResults(theory_axes, f"{expt_dir}/theory-{expt_name}.file", meta)
-run_rf_theory(theory, eigvals, eigcoeffs, noise_var=0) # 4m, 20 jun
-def run_rf_theory(theory, eigvals, eigcoeffs, noise_var):
-    n_trains = theory.get_axis("n")
-    kk = theory.get_axis("k")
-    ridges = theory.get_axis("ridge")
+theory_n256 = ExperimentResults(theory_n256_axes, f"{work_dir}/theory-n256.file", meta)
 
-    for n in n_trains:
-        for k in kk:
-            print('.', end='')
-            for ridge in ridges:
-                mse, kappa, gamma = rf_krr_risk_theory(eigvals, eigcoeffs, n, k, ridge, noise_var)
-                theory.write(kappa, n=n, k=k, ridge=ridge, result="kappa", save_after=False)
-                theory.write(gamma, n=n, k=k, ridge=ridge, result="gamma", save_after=False)
-                theory.write(mse, n=n, k=k, ridge=ridge, result="test_mse", save_after=False)
-        theory.save()
-        print()
+for n in n_trains:
+    for k in kk:
+        print('.', end='')
+        for ridge in ridges:
+            mse, kappa, gamma = rf_krr_risk_theory(eigvals, eigcoeffs, n, k, ridge, noise_var=0)
+            results = [mse, kappa, gamma]
+            theory_n256.write(results, n=n, k=k, ridge=ridge)
+    print()
 
 
 

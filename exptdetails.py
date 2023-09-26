@@ -17,6 +17,9 @@ class ExptDetails:
         if expt_num == 0:
             expt_name = f"myrtle{depth}-clean"
             msg = f"Myrtle depth-{depth} CNTK @ vanilla {dataset_name}"
+        if expt_num == 1:
+            expt_name = "fc1-nngpk"
+            msg = f"ReLU feature kernel (=1HL ReLU NNGPK) @ vanilla {dataset_name}"
         if expt_num in [10, 11, 12, 13, 14]:
             sz = self.block_sizes[expt_num]
             expt_name = f"myrtle{depth}-{sz}px-block-shuffle"
