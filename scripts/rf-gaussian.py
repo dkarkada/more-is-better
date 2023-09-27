@@ -13,9 +13,8 @@ start_time = time.time()
 
 sys.path.insert(0, 'more-is-better')
 
-from utils import save, load, int_logspace
+from utils import load, int_logspace
 from theory import rf_krr_risk_theory, rf_krr
-from imagedata import ImageData
 from exptdetails import ExptDetails
 from ExperimentResults import ExperimentResults
 
@@ -25,17 +24,17 @@ RNG = np.random.default_rng()
 
 # n_train up to 10000, k up to 10000
 
-ID = "gaussian-imitation"
-IMITATE = True
+ID = "gaussian"
+IMITATE = False
 if IMITATE:
     BINARIZATION = [[0, 1, 7, 8, 9], [2, 3, 4, 5, 6]]
 if not IMITATE:
-    ALPHA = 1.2
-    BETA = 1.4
+    ALPHA = 1.5
+    BETA = 1.5
 NOISE_VAR = 0
 M = 10000
 
-N_THRY_PTS = 60
+N_THRY_PTS = 20 # 60
 N_EXPT_PTS = 11 # 31
 N_TRIALS = 1 # 45
 N_RIDGES = 31
@@ -144,7 +143,6 @@ print("done.")
 # ensure eigcoeffs are torch tensor
 eigvals = torch.from_numpy(np.array(eigvals)).cuda()
 eigcoeffs = torch.from_numpy(np.array(eigcoeffs)).cuda()
-eigcoeffs /= torch.linalg.norm(eigcoeffs)
 
 get_dataset = get_gaussian_dataset_closure(eigcoeffs, NOISE_VAR)
 get_gaussian_feature_map = get_gaussian_feature_map_closure(eigvals)
