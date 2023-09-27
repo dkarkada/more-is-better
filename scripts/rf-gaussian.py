@@ -24,7 +24,7 @@ RNG = np.random.default_rng()
 
 # n_train up to 10000, k up to 10000
 
-IMITATE = True
+IMITATE = False
 if IMITATE:
     BINARIZATION = [[0, 1, 7, 8, 9], [2, 3, 4, 5, 6]]
     NOISE_VAR = 0
@@ -38,7 +38,7 @@ M = 10000
 
 N_THRY_PTS = 60
 N_EXPT_PTS = 31
-N_TRIALS = 45
+N_TRIALS = 1 # 45
 N_RIDGES = 31
 assert N_THRY_PTS >= 10
 
@@ -116,10 +116,10 @@ axes = [
     ("ridge", ridges),
     ("result", ["test_mse", "kappa", "gamma"])
 ]
-theory_n256 = ExperimentResults(axes, f"{work_dir}/theory-{ID}-n256.expt")
-print("Starting theory n=256")
-do_theory(theory_n256)
-print("done.")
+# theory_n256 = ExperimentResults(axes, f"{work_dir}/theory-{ID}-n256.expt")
+# print("Starting theory n=256")
+# do_theory(theory_n256)
+# print("done.")
 
 # k = 256, varying n
 axes = [
@@ -128,10 +128,10 @@ axes = [
     ("ridge", ridges),
     ("result", ["test_mse", "kappa", "gamma"])
 ]
-theory_k256 = ExperimentResults(axes, f"{work_dir}/theory-{ID}-k256.expt")
-print("Starting theory k=256")
-do_theory(theory_k256)
-print("done.")
+# theory_k256 = ExperimentResults(axes, f"{work_dir}/theory-{ID}-k256.expt")
+# print("Starting theory k=256")
+# do_theory(theory_k256)
+# print("done.")
 
 
 ## EXPT CURVES
@@ -142,15 +142,8 @@ eigcoeffs = eigcoeffs[:, None]
 eigvals = torch.from_numpy(np.array(eigvals)).cuda()
 eigcoeffs = torch.from_numpy(np.array(eigcoeffs)).cuda()
 
-print(eigvals[:4], len(eigvals))
-print(eigcoeffs[:4], len(eigcoeffs))
-
 get_dataset = get_gaussian_dataset_closure(eigcoeffs, NOISE_VAR)
 feature_map = get_gaussian_feature_map(eigvals)
-
-X, y = get_dataset(5)
-print(X[:, 0])
-print(y[:, 0])
 
 def do_expt(expt):
     for trial in expt.get_axis("trial"):
@@ -191,10 +184,10 @@ axes = [
     ("ridge", ridges),
     ("result", ["train_mse", "test_mse"])
 ]
-expt = ExperimentResults(axes, f"{work_dir}/expt-{ID}-k256.expt")
-print("Starting expt k=256")
-do_expt(expt)
-print("done.")
+# expt = ExperimentResults(axes, f"{work_dir}/expt-{ID}-k256.expt")
+# print("Starting expt k=256")
+# do_expt(expt)
+# print("done.")
 
 torch.cuda.empty_cache()
 print(f"all done. hours elapsed: {(time.time()-start_time)/3600:.2f}")
