@@ -65,7 +65,7 @@ def get_gaussian_feature_map_closure(eigvals):
     in_dim = len(eigvals)
 
     def get_gaussian_feature_map():
-        proj = torch.normal(0, 1, size=(in_dim, in_dim)) / np.sqrt(in_dim)
+        proj = torch.normal(0, 1, size=(in_dim, in_dim)).cuda() / np.sqrt(in_dim)
         F = torch.einsum('ij,j->ij', proj, torch.sqrt(eigvals))
         def gaussian_feature_map(X):
             return (F @ X.T).T
