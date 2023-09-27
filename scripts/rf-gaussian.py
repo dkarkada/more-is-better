@@ -38,7 +38,7 @@ M = 10000
 
 N_THRY_PTS = 20 # 60
 N_EXPT_PTS = 11 # 31
-N_TRIALS = 11 # 45
+N_TRIALS = 3 # 45
 N_RIDGES = 31
 assert N_THRY_PTS >= 10
 
@@ -62,17 +62,13 @@ def get_gaussian_dataset_closure(eigcoeffs, noise_var=0):
 
     return get_gaussian_dataset
 
-def get_gaussian_feature_map_closure(eigvals):
+def get_gaussian_feature_map(eigvals):
     in_dim = len(eigvals)
-
-    def get_gaussian_feature_map():
+    def gaussian_feature_map(X):
         proj = torch.normal(0, 1, size=(in_dim, in_dim)).cuda() / np.sqrt(in_dim)
         F = torch.einsum('ij,j->ij', proj, torch.sqrt(eigvals))
-        def gaussian_feature_map(X):
-            return (F @ X.T).T
-        return gaussian_feature_map
-
-    return get_gaussian_feature_map
+        return (F @ X.T).T
+    return gaussian_feature_map
 
 # gen eigvals and eigcoeffs
 if IMITATE:
@@ -120,10 +116,10 @@ axes = [
     ("ridge", ridges),
     ("result", ["test_mse", "kappa", "gamma"])
 ]
-theory_n256 = ExperimentResults(axes, f"{work_dir}/theory-{ID}-n256.expt")
-print("Starting theory n=256")
-do_theory(theory_n256)
-print("done.")
+# theory_n256 = ExperimentResults(axes, f"{work_dir}/theory-{ID}-n256.expt")
+# print("Starting theory n=256")
+# do_theory(theory_n256)
+# print("done.")
 
 # k = 256, varying n
 axes = [
@@ -132,10 +128,10 @@ axes = [
     ("ridge", ridges),
     ("result", ["test_mse", "kappa", "gamma"])
 ]
-theory_k256 = ExperimentResults(axes, f"{work_dir}/theory-{ID}-k256.expt")
-print("Starting theory k=256")
-do_theory(theory_k256)
-print("done.")
+# theory_k256 = ExperimentResults(axes, f"{work_dir}/theory-{ID}-k256.expt")
+# print("Starting theory k=256")
+# do_theory(theory_k256)
+# print("done.")
 
 
 ## EXPT CURVES
@@ -144,20 +140,27 @@ print("done.")
 eigvals = torch.from_numpy(np.array(eigvals)).cuda()
 eigcoeffs = torch.from_numpy(np.array(eigcoeffs)).cuda()
 
+print(eigvals[:4], len(eigvals))
+print(eigcoeffs[:4], len(eigcoeffs))
+
 get_dataset = get_gaussian_dataset_closure(eigcoeffs, NOISE_VAR)
-get_gaussian_feature_map = get_gaussian_feature_map_closure(eigvals)
+feature_map = get_gaussian_feature_map(eigvals)
+
+X, y = get_dataset(5)
+print(X[:, 0])
+print(y[:, 0])
 
 def do_expt(expt):
     for trial in expt.get_axis("trial"):
         for n in expt.get_axis("n"):
             X, y = get_dataset(n+1000)
-            feature_map = get_gaussian_feature_map()
             features = feature_map(X)
             assert features.shape[0] == n + 1000
             for k in expt.get_axis("k"):
                 print('.', end='')
                 ridges = expt.get_axis("ridge")
                 train_mses, test_mses = rf_krr(features, y, n, k, ridges, RNG)
+                print(train_mses[0], test_mses[0])
                 expt.write(train_mses, n=n, k=k, trial=trial, result="train_mse")
                 expt.write(test_mses, n=n, k=k, trial=trial, result="test_mse")
         print()
@@ -187,10 +190,10 @@ axes = [
     ("ridge", ridges),
     ("result", ["train_mse", "test_mse"])
 ]
-expt = ExperimentResults(axes, f"{work_dir}/expt-{ID}-k256.expt")
-print("Starting expt k=256")
-do_expt(expt)
-print("done.")
+# expt = ExperimentResults(axes, f"{work_dir}/expt-{ID}-k256.expt")
+# print("Starting expt k=256")
+# do_expt(expt)
+# print("done.")
 
 torch.cuda.empty_cache()
 print(f"all done. hours elapsed: {(time.time()-start_time)/3600:.2f}")
