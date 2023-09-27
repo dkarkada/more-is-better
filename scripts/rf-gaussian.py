@@ -79,11 +79,11 @@ if IMITATE:
     eigcoeffs = eigdata[num_eigvals]["eigcoeffs"][:M]
     eigcoeffs = eigcoeffs[:, BINARIZATION[0]].sum(axis=1) \
                 - eigcoeffs[:, BINARIZATION[1]].sum(axis=1)
+    eigcoeffs /= np.linalg.norm(eigcoeffs)
 else:
     idxs = 1 + np.arange(M)
     eigvals = idxs ** -ALPHA
     eigcoeffs = np.sqrt(idxs ** -BETA)
-eigcoeffs /= np.linalg.norm(eigcoeffs)
 
 # put on CPU to speed up theory calculation
 cpus = jax.devices("cpu")
