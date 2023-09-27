@@ -24,7 +24,7 @@ RNG = np.random.default_rng()
 
 # n_train up to 10000, k up to 10000
 
-IMITATE = False
+IMITATE = True
 if IMITATE:
     BINARIZATION = [[0, 1, 7, 8, 9], [2, 3, 4, 5, 6]]
     NOISE_VAR = 0
@@ -162,7 +162,6 @@ def do_expt(expt):
                 print('.', end='')
                 ridges = expt.get_axis("ridge")
                 train_mses, test_mses = rf_krr(features, y, n, k, ridges, RNG)
-                print(train_mses[0], test_mses[0])
                 expt.write(train_mses, n=n, k=k, trial=trial, result="train_mse")
                 expt.write(test_mses, n=n, k=k, trial=trial, result="test_mse")
         print()
