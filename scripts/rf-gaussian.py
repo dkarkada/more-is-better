@@ -83,6 +83,7 @@ else:
     idxs = 1 + np.arange(M)
     eigvals = idxs ** -ALPHA
     eigcoeffs = np.sqrt(idxs ** -BETA)
+eigcoeffs /= np.linalg.norm(eigcoeffs)
 
 # put on CPU to speed up theory calculation
 cpus = jax.devices("cpu")
