@@ -36,9 +36,9 @@ if not IMITATE:
     ID = "gaussian"
 M = 10000
 
-N_THRY_PTS = 20 # 60
-N_EXPT_PTS = 11 # 31
-N_TRIALS = 3 # 45
+N_THRY_PTS = 60
+N_EXPT_PTS = 31
+N_TRIALS = 45
 N_RIDGES = 31
 assert N_THRY_PTS >= 10
 
@@ -83,6 +83,7 @@ else:
     idxs = 1 + np.arange(M)
     eigvals = idxs ** -ALPHA
     eigcoeffs = np.sqrt(idxs ** -BETA)
+eigcoeffs = eigcoeffs[:, None]
 
 # put on CPU to speed up theory calculation
 cpus = jax.devices("cpu")
@@ -116,10 +117,10 @@ axes = [
     ("ridge", ridges),
     ("result", ["test_mse", "kappa", "gamma"])
 ]
-# theory_n256 = ExperimentResults(axes, f"{work_dir}/theory-{ID}-n256.expt")
-# print("Starting theory n=256")
-# do_theory(theory_n256)
-# print("done.")
+theory_n256 = ExperimentResults(axes, f"{work_dir}/theory-{ID}-n256.expt")
+print("Starting theory n=256")
+do_theory(theory_n256)
+print("done.")
 
 # k = 256, varying n
 axes = [
@@ -128,10 +129,10 @@ axes = [
     ("ridge", ridges),
     ("result", ["test_mse", "kappa", "gamma"])
 ]
-# theory_k256 = ExperimentResults(axes, f"{work_dir}/theory-{ID}-k256.expt")
-# print("Starting theory k=256")
-# do_theory(theory_k256)
-# print("done.")
+theory_k256 = ExperimentResults(axes, f"{work_dir}/theory-{ID}-k256.expt")
+print("Starting theory k=256")
+do_theory(theory_k256)
+print("done.")
 
 
 ## EXPT CURVES
@@ -190,10 +191,10 @@ axes = [
     ("ridge", ridges),
     ("result", ["train_mse", "test_mse"])
 ]
-# expt = ExperimentResults(axes, f"{work_dir}/expt-{ID}-k256.expt")
-# print("Starting expt k=256")
-# do_expt(expt)
-# print("done.")
+expt = ExperimentResults(axes, f"{work_dir}/expt-{ID}-k256.expt")
+print("Starting expt k=256")
+do_expt(expt)
+print("done.")
 
 torch.cuda.empty_cache()
 print(f"all done. hours elapsed: {(time.time()-start_time)/3600:.2f}")
