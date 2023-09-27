@@ -18,7 +18,7 @@ from exptdetails import ExptDetails
 from ExperimentResults import ExperimentResults
 
 args = sys.argv
-IMITATE = 0 if int(args[1])==0 else 1
+IMITATE = int(args[1])!=0
 
 RNG = np.random.default_rng()
 

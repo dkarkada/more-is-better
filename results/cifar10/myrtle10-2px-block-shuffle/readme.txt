@@ -1,0 +1,1 @@
+Myrtle depth-10 CNTK @ cifar10, block-shuffled (blocksize 2px)

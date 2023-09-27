@@ -1,0 +1,1 @@
+Myrtle depth-5 CNTK @ vanilla cifar10
