@@ -24,14 +24,16 @@ RNG = np.random.default_rng()
 
 # n_train up to 10000, k up to 10000
 
-ID = "gaussian"
 IMITATE = False
 if IMITATE:
     BINARIZATION = [[0, 1, 7, 8, 9], [2, 3, 4, 5, 6]]
+    NOISE_VAR = 0
+    ID = "gaussian-imitation"
 if not IMITATE:
     ALPHA = 1.5
     BETA = 1.5
-NOISE_VAR = 0
+    NOISE_VAR = 0.5
+    ID = "gaussian"
 M = 10000
 
 N_THRY_PTS = 20 # 60
