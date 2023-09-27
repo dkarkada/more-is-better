@@ -38,7 +38,7 @@ M = 10000
 
 N_THRY_PTS = 20 # 60
 N_EXPT_PTS = 11 # 31
-N_TRIALS = 1 # 45
+N_TRIALS = 11 # 45
 N_RIDGES = 31
 assert N_THRY_PTS >= 10
 
@@ -83,12 +83,10 @@ if IMITATE:
     eigcoeffs = eigdata[num_eigvals]["eigcoeffs"][:M]
     eigcoeffs = eigcoeffs[:, BINARIZATION[0]].sum(axis=1) \
                 - eigcoeffs[:, BINARIZATION[1]].sum(axis=1)
-    eigcoeffs /= np.linalg.norm(eigcoeffs)
 else:
     idxs = 1 + np.arange(M)
     eigvals = idxs ** -ALPHA
     eigcoeffs = np.sqrt(idxs ** -BETA)
-    eigcoeffs /= np.linalg.norm(eigcoeffs)
 
 # put on CPU to speed up theory calculation
 cpus = jax.devices("cpu")
