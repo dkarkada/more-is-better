@@ -38,7 +38,7 @@ M = 10000
 N_THRY_PTS = 60
 N_EXPT_PTS = 11 # 31
 N_TRIALS = 1 # 45
-N_RIDGES = 3 # 31
+N_RIDGES = 31
 assert N_THRY_PTS >= 10
 
 DATASET_NAME = 'cifar10'
@@ -144,6 +144,7 @@ print("done.")
 # ensure eigcoeffs are torch tensor
 eigvals = torch.from_numpy(np.array(eigvals)).cuda()
 eigcoeffs = torch.from_numpy(np.array(eigcoeffs)).cuda()
+eigcoeffs /= torch.linalg.norm(eigcoeffs)
 
 get_dataset = get_gaussian_dataset_closure(eigcoeffs, NOISE_VAR)
 get_gaussian_feature_map = get_gaussian_feature_map_closure(eigvals)
