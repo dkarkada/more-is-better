@@ -83,7 +83,6 @@ else:
     idxs = 1 + np.arange(M)
     eigvals = idxs ** -ALPHA
     eigcoeffs = np.sqrt(idxs ** -BETA)
-eigcoeffs = eigcoeffs[:, None]
 
 # put on CPU to speed up theory calculation
 cpus = jax.devices("cpu")
@@ -137,7 +136,9 @@ print("done.")
 
 ## EXPT CURVES
 
-# ensure eigcoeffs are torch tensor
+# IMPORTANT: eigcoeffs must have ndim==2 !!!!!
+eigcoeffs = eigcoeffs[:, None]
+# move to GPU torch tensor
 eigvals = torch.from_numpy(np.array(eigvals)).cuda()
 eigcoeffs = torch.from_numpy(np.array(eigcoeffs)).cuda()
 
