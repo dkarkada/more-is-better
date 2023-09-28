@@ -1,6 +1,4 @@
 import numpy as np
-from imagedata import blockwise_shuffle, shuffle_frac
-
 
 class ExptDetails:
     block_sizes = {
@@ -32,6 +30,7 @@ class ExptDetails:
         self.msg = msg
         
     def modify_dataset(self, dataset):
+        from imagedata import blockwise_shuffle, shuffle_frac
         X, y = dataset
         RNG = np.random.default_rng(seed=42)
         if self.expt_num in [10, 11, 12, 13, 14]:

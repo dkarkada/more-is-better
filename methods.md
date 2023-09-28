@@ -9,3 +9,5 @@ We emphasize that powerlaw structure is not a requirement for applying our RF ei
 We choose a plot that demonstrates the validity of our theory on both sides of the interpolation threshold. Due to computational constraints this requires us to choose a small trainset size ($n=256$) which results in weak performance even as $k$ increases. With a larger trainset, the test error decreases more substantially as one increases the number of features.
 
 Since both models have the same eigenstructure, we expect them to perform identically in the infinite-feature limit.
+
+We note that it is infeasible to accurately measure the asymptotic powerlaw exponents by directly fitting the finite-size spectra. Thankfully, there are techniques to measure the exponents by proxy. These techniques (discussed in TODO) yield precise results and we employ them throughout our experiments. Exact powerlaws with the measured exponents are shown here in dotted lines (vertically shifted for visual clarity).
