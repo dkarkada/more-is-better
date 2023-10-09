@@ -8,7 +8,7 @@ class ImageData():
 
     dataset_dict = {
         'mnist': torchvision.datasets.MNIST,
-        'emnist': torchvision.datasets.EMNIST,
+        'fmnist': torchvision.datasets.FashionMNIST,
         'cifar10': torchvision.datasets.CIFAR10,
         'cifar100': torchvision.datasets.CIFAR100,
         'svhn': torchvision.datasets.SVHN,
@@ -18,7 +18,7 @@ class ImageData():
 
     def __init__(self, dataset_name, work_dir=".", classes=None, binarize=False):
         """
-        dataset_name (str): one of  'mnist', 'emnist', 'cifar10', 'cifar100', 'imagenet32', 'imagenet64'
+        dataset_name (str): one of  'mnist', 'fmnist', 'cifar10', 'cifar100', 'imagenet32', 'imagenet64'
         classes (iterable): a list of groupings of old class labels that each constitute a new class.
             e.g. [[0,1], [8]] on MNIST would be a binary classification problem where the first class
             consists of samples of 0's and 1's and the second class has samples of 8's
@@ -31,7 +31,7 @@ class ImageData():
         def process_data(dataset):
             if self.name in ['cifar10','cifar100']:
                 X, y = dataset.data, dataset.targets
-            if self.name in ['mnist', 'emnist']:
+            if self.name in ['mnist', 'fmnist']:
                 X, y = dataset.data.numpy(), dataset.targets.numpy()
                 X = X[:,:,:,None]
             if self.name in ['svhn']:
@@ -67,7 +67,7 @@ class ImageData():
 
             return X.astype(np.float32), y.astype(np.float32)
         
-        if self.name in ['cifar10','cifar100', 'mnist', 'emnist']:
+        if self.name in ['cifar10','cifar100', 'mnist', 'fmnist']:
             raw_train = self.dataset_dict[self.name](root=f'{work_dir}/data', train=True, download=True)
             raw_test = self.dataset_dict[self.name](root=f'{work_dir}/data', train=False, download=True)
         if self.name == 'svhn':
