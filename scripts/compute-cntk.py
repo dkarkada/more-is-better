@@ -22,7 +22,7 @@ DEPTH = int(args[3])
 NUM_TILES = int(args[4])
 
 DATASET_NAME = DATASET_NAME.lower()
-assert DATASET_NAME in ['cifar10', 'cifar100', 'svhn', 'emnist',
+assert DATASET_NAME in ['cifar10', 'cifar100', 'svhn', 'fmnist',
                         'mnist', 'imagenet32', 'imagenet64']
 
 expt_details = ExptDetails(EXPT_NUM, DEPTH, DATASET_NAME)
