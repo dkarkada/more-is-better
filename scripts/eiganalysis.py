@@ -20,7 +20,7 @@ args = sys.argv
 
 RNG = np.random.default_rng()
 
-DATASET_NAME = str(args[1])
+DATASET_NAME = str(args[1]).lower()
 EXPT_NUM = int(args[2])
 DEPTH = int(args[3])
 N = int(args[4])
@@ -29,10 +29,6 @@ N_SIZES = 80
 N_TRIALS = 10
 MAX_SIZE = 29000
 N_TEST = 2000
-
-DATASET_NAME = DATASET_NAME.lower()
-assert DATASET_NAME in ['cifar10', 'cifar100', 'svhn', 'fmnist',
-                        'mnist', 'imagenet32', 'imagenet64']
 
 expt_details = ExptDetails(EXPT_NUM, DEPTH, DATASET_NAME)
 expt_name = expt_details.expt_name

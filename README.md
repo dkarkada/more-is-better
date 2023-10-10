@@ -13,3 +13,8 @@
 * (i just changed all datasets and kernel tiles to float32 so hopefully the issue is moot now.)
 * in general, if train error diverges with increasing n (at zero ridge), there's something going wrong with the inverse
 * jax greedily self-allocated gpu memory. If i call a jitted function with 32gb free gpu mem, jax grabs it and pytorch starves. Use jax config to use cpu exclusively
+ 
+* need to use ~~numpy~~ scipy for cpu eigendecomp -- pytorch 32bit-interface can't handle large matrices 
+* see https://github.com/pytorch/pytorch/issues/92141
+* see https://github.com/numpy/numpy/issues/13956
+* scipy eigh calls dsyevr, better (?) than numpy which uses dsyevd

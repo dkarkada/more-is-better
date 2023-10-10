@@ -9,6 +9,8 @@ class ExptDetails:
     }
     
     def __init__(self, expt_num, depth, dataset_name):
+        assert dataset_name in ['cifar10', 'cifar100', 'svhn', 'fmnist',
+                                'mnist', 'imagenet32', 'imagenet64']
         self.expt_num = expt_num
         self.depth = depth
         self.dataset_name = dataset_name
